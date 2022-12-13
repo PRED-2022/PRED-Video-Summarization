@@ -21,6 +21,9 @@ if __name__ == "__main__":
         cap = cv2.VideoCapture(VIDEO_FOLDER + video_name)
         model = ResMem(pretrained=True)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        print("Inférence utilisant", device)
+
         model.to(device)
         model.eval()
 

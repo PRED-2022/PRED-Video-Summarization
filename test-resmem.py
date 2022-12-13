@@ -3,9 +3,10 @@ import torch
 from resmem import ResMem, transformer
 from PIL import Image
 import matplotlib.pyplot as plt
+from rich.progress import Progress
 
 VIDEO_FOLDER = "./video/"
-VIDEO_NAME = "me-at-the-zoo.mp4"
+VIDEO_NAME = "ferrari-f12.mp4"
 
 DISPLAY_VIDEO = False
 
@@ -24,34 +25,38 @@ if __name__ == "__main__":
     best_image = None
 
     i = 0
-    while cap.isOpened():
-        ret, frame = cap.read()
-        i = i + 1
+    with Progress() as progress:
+        task = progress.add_task("[blue]Analysing...", total=cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        while cap.isOpened():
+            ret, frame = cap.read()
+            i = i + 1
 
-        if not ret:
-            break
+            progress.advance(task)
 
-        if i % 1 == 0:
+            if not ret:
+                break
 
-            # Display the resulting frame
-            image_x = transformer(Image.fromarray(frame))
-            image_x = image_x.to(device)
-            prediction = model(image_x.view(-1, 3, 227, 227))
-            
-            prediction = prediction.detach().cpu().numpy()[0][0]
-            list_item.append(prediction)
+            if i % 25 == 0:
 
-            if worst_image is None or prediction < worst_image[0]:
-                worst_image = (prediction, frame)
+                # Display the resulting frame
+                image_x = transformer(Image.fromarray(frame))
+                image_x = image_x.to(device)
+                prediction = model(image_x.view(-1, 3, 227, 227))
+                
+                prediction = prediction.detach().cpu().numpy()[0][0]
+                list_item.append(prediction)
 
-            if best_image is None or prediction > best_image[0]:
-                best_image = (prediction, frame)
+                if worst_image is None or prediction < worst_image[0]:
+                    worst_image = (prediction, frame)
 
-            if DISPLAY_VIDEO:
-                cv2.imshow('Frame', frame)
-                # Press Q on keyboard to  exit
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+                if best_image is None or prediction > best_image[0]:
+                    best_image = (prediction, frame)
+
+                if DISPLAY_VIDEO:
+                    cv2.imshow('Frame', frame)
+                    # Press Q on keyboard to  exit
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
 
 
     # Affichage des pires et des meilleures image

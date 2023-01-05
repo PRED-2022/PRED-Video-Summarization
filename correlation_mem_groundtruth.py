@@ -47,7 +47,7 @@ if __name__ == "__main__":
                 best_image = None
                 
                 i = 0
-                video_analyse_task = progress.add_task("[blue]Analyse video...", total=cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                video_analyse_task = progress.add_task("[blue]Analyse video : " + video_name, total=cap.get(cv2.CAP_PROP_FRAME_COUNT))
                 while cap.isOpened():
                     ret, frame = cap.read()
                     i = i + 1

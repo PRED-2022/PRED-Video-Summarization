@@ -81,12 +81,15 @@ if __name__ == "__main__":
                 video_id = video_name.split('.')[0]
                 ground_truth = get_frames_importance(video_id)
 
-                pearson_correlation = stats.pearsonr(memorability_scores, ground_truth).statistic
-                pearson_correlations.append(pearson_correlation)
+                pearson_correlation = ""
+                spearman_correlation = ""
+                if len(ground_truth) == len(memorability_scores):
+                    pearson_correlation = stats.pearsonr(memorability_scores, ground_truth).statistic
+                    pearson_correlations.append(pearson_correlation)
 
-                spearman_correlation = stats.spearmanr(memorability_scores, ground_truth).correlation
-                spearman_correlations.append(spearman_correlation)
-
+                    spearman_correlation = stats.spearmanr(memorability_scores, ground_truth).correlation
+                    spearman_correlations.append(spearman_correlation)
+                
                 writer.writerow([video_name, pearson_correlation, spearman_correlation, ",".join(map(str, memorability_scores))])
 
 

@@ -169,3 +169,6 @@ cython_debug/
 tv-sum-mem-score.csv
 tvsum/data/ydata-tvsum50-anno.tsv
 tvsum/data/ydata-tvsum50-info.tsv
+pretrained_ckpt
+res10_300x300_ssd_iter_140000.caffemodel
+deploy.prototxt.txt

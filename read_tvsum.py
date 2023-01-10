@@ -1,9 +1,11 @@
+from matplotlib.ticker import PercentFormatter
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from math import ceil
 from scipy.signal import savgol_filter
+from sklearn.decomposition import PCA
 
 # Jeu de données TVSum
 # Source : http://people.csail.mit.edu/yalesong/tvsum/
@@ -45,6 +47,8 @@ def get_all_videos_id():
 
 
 if __name__ == "__main__":
+    WINDOW_IN_SECOND = 30
+    STRIDE_IN_SECOND = 10
 
     all_frames_importances = []
     all_frames_memorability = {}
@@ -61,62 +65,102 @@ if __name__ == "__main__":
         haveMemorabilityScore.append(hasMemorability)
         if hasMemorability:
             all_frames_memorability[index] = frames_memorability
-    """
-        Vidéos de différents durées donc on étire (répète) les scores de chaque frame
-        des videos pour que toutes les vidéos aient une durée de STRETCH_TO_N_FRAMES
-    """
-    STRETCH_TO_N_FRAMES = 1000000
 
-    # Pertes dues à l'étirement
-    losses = []
 
+    windows_importance = []
+    windows_memorability = []
     for video_index in range(len(all_frames_importances)):
         # Vérité-terrain d'une vidéo (score de chaque frame)
         frames_importances = all_frames_importances[video_index]
-        if haveMemorabilityScore[video_index]:
-            frames_memorability = all_frames_memorability[video_index]
+
+        # Mémorabilité des frames d'une vidéo
+        frames_memorability = all_frames_memorability[video_index]
 
         # Nombre de frames de la vidéo = nombre de scores d'importance
         nb_frames_video = len(frames_importances)
-        
-        # Combien de fois il faut répéter chaque frame pour atteindre STRETCH_TO_N_FRAMES :
-        repeat_n_times = ceil(STRETCH_TO_N_FRAMES / nb_frames_video)
-        # On répète les (scores des) frames pour atteindre STRETCH_TO_N_FRAMES :
-        all_frames_importances[video_index] = np.repeat(frames_importances, repeat_n_times)
-        if haveMemorabilityScore[video_index]:
-            all_frames_memorability[video_index] = np.repeat(frames_memorability, repeat_n_times)
 
-        loss = (len(all_frames_importances[video_index])-STRETCH_TO_N_FRAMES) / len(all_frames_importances[video_index])
-        losses.append(loss)
+        for l_window in range(0, len(frames_importances), 24*STRIDE_IN_SECOND):
+            r_window = l_window + 24*WINDOW_IN_SECOND
+            if r_window > len(frames_importances):
+                break
+            else:
+                windows_importance.append(frames_importances[l_window:r_window])
+                windows_memorability.append(frames_memorability[l_window:r_window])
+    
 
-        # On enlève les frames >= STRETCH_TO_N_FRAMES (= perte) :
-        all_frames_importances[video_index] = all_frames_importances[video_index][:STRETCH_TO_N_FRAMES]
-        if haveMemorabilityScore[video_index]:
-            all_frames_memorability[video_index] = all_frames_memorability[video_index][:STRETCH_TO_N_FRAMES]
+    """
+        Analyse en composantes principales
+    """
+    pca = PCA(n_components=4)
 
-    print("Pertes moyenne : {:.2%}, écart-type : {:.2%}. Perte minimale : {:.2%}, maximale : {:.2%}".format(np.average(losses), np.std(losses), np.min(losses), np.max(losses)))
+    data_2d = pca.fit_transform(windows_memorability)
+
+    x_bar = range(len(pca.explained_variance_))
+    y_bar = list(pca.explained_variance_)
+
+    y_cumulated = np.cumsum(y_bar)/sum(y_bar)*100
+
+    fig, ax = plt.subplots()
+
+    ax.bar(x_bar, y_bar, tick_label=['PC'+str(i) for i in range(1,len(pca.components_)+1)])
+    ax.tick_params(axis="y", colors="C0")
+
+    ax2 = ax.twinx()
+    ax2.plot(x_bar, y_cumulated, color="C1", marker=".",)
+    ax2.yaxis.set_major_formatter(PercentFormatter())
+    ax2.tick_params(axis="y", colors="C1")
+
+    ax.set_xlabel("Composantes principales")
+    ax.set_ylabel("Variance expliquée")
+
+    plt.show()
+
+    for pc_x, pc_y in [[0,1],[2,3]]:
+
+        xs = data_2d[:,pc_x]
+        ys = data_2d[:,pc_y]
+
+        coeff = pca.components_[pc_x:pc_y+1, :].T
+        n = coeff.shape[0]
+
+        scalex = 1.0/(xs.max() - xs.min())
+        scaley = 1.0/(ys.max() - ys.min())
+
+        fig, ax = plt.subplots()
+        ax.scatter(data_2d[:][:,pc_x]*scalex, data_2d[:][:,pc_y]*scaley, marker=".", alpha=0.5)
+        ax.set_xlabel("PC{}".format(pc_x+1))
+        ax.set_ylabel("PC{}".format(pc_y+1))
+
+        print(len(data_2d[:]))
+
+        for i in range(n):
+            plt.arrow(0, 0, coeff[i,0], coeff[i,1], color='r', alpha=0.005, head_width=0.003)
+
+        plt.show()
+
 
     """
         Application d'une méthode de clustering : K-Means
     """
-
-    kmeans_groundtruth = KMeans(n_clusters=3, random_state=0).fit(all_frames_importances)
+    """
+    kmeans_groundtruth = KMeans(n_clusters=3, random_state=0).fit(windows_importance)
     print(kmeans_groundtruth.labels_)
     for center in kmeans_groundtruth.cluster_centers_:
-        plt.plot(savgol_filter(center, window_length=100000, polyorder=3, mode="nearest"))
+        plt.plot(center)
 
-    plt.xlabel("Frames de la vidéo au cours du temps")
+    plt.xlabel("Fenêtres")
     plt.ylabel("Scores d'importance")
     plt.savefig('groundtruth-tvsum-clusters.png')
     
     plt.clf()
     
     if len(frames_memorability) > 0:
-        kmeans_memorability = KMeans(n_clusters=3, random_state=0).fit(list(all_frames_memorability.values()))
+        kmeans_memorability = KMeans(n_clusters=3, random_state=0).fit(windows_memorability)
         print(kmeans_memorability.labels_)
         for center in kmeans_memorability.cluster_centers_:
-            plt.plot(savgol_filter(center, window_length=100000, polyorder=3, mode="nearest"))
+            plt.plot(center)
 
         plt.xlabel("Frames de la vidéo au cours du temps")
         plt.ylabel("Memorabilité")
         plt.savefig('memorability-tvsum-clusters.png')
+    """

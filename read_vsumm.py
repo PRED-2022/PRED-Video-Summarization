@@ -44,4 +44,4 @@ def read_memorability():
         print("Moyenne de mémorabilité sur les frames non sélectionnées :", avg_not_selected)
 
 if __name__ == "__main__":
-    read_memorability()
+    get_frames_importance('v20')

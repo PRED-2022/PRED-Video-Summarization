@@ -18,7 +18,6 @@ def get_frames_importance(VIDEO_ID):
             if number != '':
                 frames.append(int(number))
         frames.sort()
-        print(frames)
         for i in frames:
             binarized_vect[i] = 1
 
@@ -43,5 +42,5 @@ def read_memorability():
         print("Moyenne de mémorabilité sur les frames sélectionnées :", avg_selected)
         print("Moyenne de mémorabilité sur les frames non sélectionnées :", avg_not_selected)
 
-
-read_memorability()
+if __name__ == "__main__":
+    read_memorability()

@@ -22,7 +22,7 @@ if __name__ == "__main__":
     pearson_correlations = []
     spearman_correlations = []
 
-    video_names = glob.glob1(VIDEO_FOLDER, '*.*')
+    video_names = glob.glob1(VIDEO_FOLDER, '*.avi')
     
     model = ResMem(pretrained=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

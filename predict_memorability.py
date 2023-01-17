@@ -1,6 +1,7 @@
 import cv2
 import torch
-from read_tvsum import get_frames_importance
+#from read_tvsum import get_frames_importance
+from read_vsumm import get_frames_importance
 from resmem import ResMem, transformer
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -11,9 +12,9 @@ import csv
 from tqdm import tqdm
 from rich.progress import Progress
 
-VIDEO_FOLDER = './tvsum/video/'
+VIDEO_FOLDER = './vsumm/youtube/'
 
-MEM_SCORE_FILEPATH = './tv-sum-mem-score.csv'
+MEM_SCORE_FILEPATH = './vsumm-mem-score.csv'
 
 DISPLAY_VIDEO = False
 
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     pearson_correlations = []
     spearman_correlations = []
 
-    video_names = glob.glob1(VIDEO_FOLDER, '*.mp4')
+    video_names = glob.glob1(VIDEO_FOLDER, '*.*')
     
     model = ResMem(pretrained=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

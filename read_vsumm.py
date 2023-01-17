@@ -19,7 +19,8 @@ def get_frames_importance(VIDEO_ID):
                 frames.append(int(number))
         frames.sort()
         for i in frames:
-            binarized_vect[i] = 1
+            print(nb_frames, i)
+            binarized_vect[i-1] = 1
 
     return np.array(binarized_vect)
 

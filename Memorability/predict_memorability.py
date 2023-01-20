@@ -1,15 +1,9 @@
 import cv2
 import torch
-#from read_tvsum import get_frames_importance
-from read_vsumm import get_frames_importance
 from resmem import ResMem, transformer
 from PIL import Image
-import matplotlib.pyplot as plt
-from scipy import stats
 import glob
-import numpy as np
 import csv
-from tqdm import tqdm
 from rich.progress import Progress
 
 VIDEO_FOLDER = './vsumm/youtube/'
@@ -19,9 +13,6 @@ MEM_SCORE_FILEPATH = './vsumm-mem-score.csv'
 DISPLAY_VIDEO = False
 
 if __name__ == "__main__":
-    pearson_correlations = []
-    spearman_correlations = []
-
     video_names = glob.glob1(VIDEO_FOLDER, '*.avi')
     
     model = ResMem(pretrained=True)
@@ -32,7 +23,7 @@ if __name__ == "__main__":
 
     with open(MEM_SCORE_FILEPATH, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file, delimiter=';')
-        writer.writerow(['video_name', 'pearson', 'spearman', 'memorability_scores'])
+        writer.writerow(['video_name', 'memorability_scores'])
 
 
         with Progress() as progress:
@@ -79,38 +70,6 @@ if __name__ == "__main__":
                                 break
 
 
-                video_id = video_name.split('.')[0]
-                ground_truth = get_frames_importance(video_id)
-
-                if len(ground_truth) != len(memorability_scores):
-                    memorability_scores = memorability_scores[:len(ground_truth)]
-                
-                pearson_correlation = stats.pearsonr(memorability_scores, ground_truth).statistic
-                pearson_correlations.append(pearson_correlation)
-
-                spearman_correlation = stats.spearmanr(memorability_scores, ground_truth).correlation
-                spearman_correlations.append(spearman_correlation)
-                
-                writer.writerow([video_name, pearson_correlation, spearman_correlation, ",".join(map(str, memorability_scores))])
-
-
-    print("--------------------------------")
-    print("Corrélation de Pearson : ")
-    print("- Moyenne : {} ".format(np.average(pearson_correlations)))
-    print("- Ecart-type : {} ".format(np.std(pearson_correlations)))
-    print("- Min : {} - Max : {}".format(np.min(pearson_correlations), np.max(pearson_correlations)))
-    print("--------------------------------")
-    print("Corrélation de Spearman : ")
-    print("- Moyenne : {} ".format(np.average(spearman_correlations)))
-    print("- Ecart-type : {} ".format(np.std(spearman_correlations)))
-    print("- Min : {} - Max : {}".format(np.min(spearman_correlations), np.max(spearman_correlations)))
-    print("--------------------------------")
-
-    # Affichage du graphique
-    plt.plot(spearman_correlations, '-r')
-    plt.plot(pearson_correlations, '-b')
-    plt.ylabel('Corrélation')
-    plt.xlabel('Numéro des vidéos')
-    plt.show()
+                writer.writerow([video_name, ",".join(map(str, memorability_scores))])
 
 

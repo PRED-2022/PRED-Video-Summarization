@@ -9,6 +9,7 @@ from tslearn.barycenters import dtw_barycenter_averaging
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+import csv
 
 # Jeu de données TVSum
 # Source : http://people.csail.mit.edu/yalesong/tvsum/
@@ -48,9 +49,29 @@ def get_all_videos_id():
     print(len(videos_infos['video_id']))
     return videos_infos['video_id']
 
+def get_all_frames_importance():
+    ground_truth = pd.read_csv('./tvsum/data/ydata-tvsum50-anno.tsv', sep='\t', header=None)
+    ground_truth.columns = ['id', 'category', 'importance']
+    with open('./tvsum/data/groundtruth.csv', 'w', newline='') as csv_file:
+        writer = csv.writer(csv_file, delimiter=';')
+        writer.writerow(['id', 'importance'])
+
+        for video_id in get_all_videos_id():
+            video_ground_truth = ground_truth[ground_truth['id'] == video_id]['importance']
+
+            annotations_list = []
+
+            for importances_observer_i in video_ground_truth:
+                importances_observer_i = list(map(int, importances_observer_i.split(',')))
+                annotations_list.append(importances_observer_i)
+
+            print(np.average(annotations_list, axis=0))
+
+            writer.writerow([video_id, ','.join(map(str,np.average(annotations_list, axis=0)))])
+
 
 def read_correlations():
-    mems = pd.read_csv('./tv-sum-mem-score.csv', sep=';', header=0)
+    mems = pd.read_csv('./tv-sum-mem-score.csv', sep=';', header=0, usecols=['video_name','memorability_scores'])
 
     for index in range(len(mems)):
         video_id = mems.loc[index, 'video_name'].split('.')[0]
@@ -59,15 +80,8 @@ def read_correlations():
         if len(groundtruth) != len(memorability):
             memorability = memorability[:len(groundtruth)]
 
-        memorability_per_sec = []
-        gt_per_sec = []
-        n_frames = 1
-        for i in range(0, len(memorability), n_frames):
-            memorability_per_sec.append(np.average(memorability[i:i+n_frames]))
-            gt_per_sec.append(np.average(groundtruth[i:i+n_frames]))
-
-        mems.loc[index, 'pearson'] = stats.pearsonr(memorability_per_sec, gt_per_sec).statistic
-        mems.loc[index, 'spearman'] = stats.spearmanr(memorability_per_sec, gt_per_sec).correlation
+        mems.loc[index, 'pearson'] = stats.pearsonr(memorability, groundtruth).statistic
+        mems.loc[index, 'spearman'] = stats.spearmanr(memorability, groundtruth).correlation
 
     pearsons = mems['pearson']
     spearmans = mems['spearman']
@@ -110,9 +124,9 @@ DIM_REDUCTIONS_TEST = False
 if __name__ == "__main__":
     if READ_CORRELATIONS:
         read_correlations()
-    elif DIM_REDUCTIONS_TEST:
+    if DIM_REDUCTIONS_TEST:
         # Taille de la fenêtre vidéo en seconde :
-        WINDOW_IN_SECOND = 10
+        WINDOW_IN_SECOND = 25
         # Pas entre deux fenêtres, si WINDOW >= STRIDE -> pas de superposition de fenêtres
         STRIDE_IN_SECOND = 5
 
@@ -245,6 +259,10 @@ if __name__ == "__main__":
 
         labels = kmeans.fit_predict(tsne_data)
         plot_count = math.ceil(math.sqrt(cluster_count))
+        
+
+        plt.scatter(tsne_data[:,0], tsne_data[:,1], marker=".", alpha=0.5, c=labels)
+        plt.show()
 
         fig, axs = plt.subplots(plot_count,plot_count,figsize=(15,15))
         fig.suptitle('Clusters')

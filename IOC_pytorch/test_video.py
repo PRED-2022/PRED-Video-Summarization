@@ -66,13 +66,11 @@ if __name__ == "__main__":
                             video_data[video_name].append(None)
                             break
                     
-                        frame= cv2.resize(frame, VIDEO_SIZE[::-1])
+                        frame = cv2.resize(frame, VIDEO_SIZE[::-1])
                         frame = preprocess(Image.fromarray(frame)).to(device).unsqueeze(0)
                         predicted_ioc = model(frame)
-                        print(predicted_ioc.cpu().squeeze())
-                        predicted_ioc = predicted_ioc.squeeze().detach().cpu().numpy()
-
+                        predicted_ioc = predicted_ioc.squeeze().detach().cpu().item()
                         video_data[video_name].append(predicted_ioc)
 
-            output_file.write(json.dumps(video_data))
-            print("Fichier sauvegardé") 
+                    output_file.write(json.dumps(video_data))
+                    print("Fichier sauvegardé") 

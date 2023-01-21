@@ -6,14 +6,14 @@ import glob
 import csv
 from rich.progress import Progress
 
-VIDEO_FOLDER = './vsumm/youtube/'
+VIDEO_FOLDER = './vsumm/open-video/'
 
-MEM_SCORE_FILEPATH = './vsumm-mem-score.csv'
+MEM_SCORE_FILEPATH = './vsumm-openvideo-mem-score.csv'
 
 DISPLAY_VIDEO = False
 
 if __name__ == "__main__":
-    video_names = glob.glob1(VIDEO_FOLDER, '*.avi')
+    video_names = glob.glob1(VIDEO_FOLDER, '*.mpg')
     
     model = ResMem(pretrained=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

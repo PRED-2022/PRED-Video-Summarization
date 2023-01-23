@@ -1,6 +1,6 @@
 import os
 import torch
-from torchvision.transforms import ToTensor, Compose
+from torchvision.transforms import ToTensor, Compose, Normalize
 from datasets_ioc import ResizeAndPad
 from model_IOC import IOCNet
 from PIL import Image
@@ -18,8 +18,10 @@ from rich.progress import Progress
 
 VIDEO_SIZE = (300, 400)
 VIDEO_FOLDER = './tvsum/video/'
-IOVC_FILEPATH = './tv-sum-iovc.json'
+IOVC_FILEPATH = './tv-sum-iovc-normalized-gpu-batch.json'
 IOVC_WEIGHTS = "./IOC_pytorch/weights/model_weights.pth"
+
+LENGTH_BATCH_OF_IMAGES = 125
 
 if __name__ == "__main__":
 
@@ -28,7 +30,6 @@ if __name__ == "__main__":
     print("Using {} device".format(device))
 
     preprocess = Compose([
-        # Resize(VIDEO_SIZE),
         ToTensor(),
     ])
 
@@ -56,21 +57,41 @@ if __name__ == "__main__":
                     video_data[video_name] = list()
 
                     i = 0
+                    past_frames = []
                     video_analyse_task = progress.add_task("[blue]Analyse video : " + video_name, total=cap.get(cv2.CAP_PROP_FRAME_COUNT))
                     while cap.isOpened():
                         ret, frame = cap.read()
                         i = i + 1
                         progress.advance(video_analyse_task)
-                        
+
+                        video_is_over = False
+
                         if not ret:
-                            video_data[video_name].append(None)
-                            break
-                    
-                        frame = cv2.resize(frame, VIDEO_SIZE[::-1])
-                        frame = preprocess(Image.fromarray(frame)).to(device).unsqueeze(0)
-                        predicted_ioc = model(frame)
-                        predicted_ioc = predicted_ioc.squeeze().detach().cpu().item()
-                        video_data[video_name].append(predicted_ioc)
+                            video_is_over = True
+                      
+                        else:
+                            frame = cv2.resize(frame, VIDEO_SIZE[::-1])
+                            frame = Image.fromarray(frame)
+                            frame = preprocess(frame)
+                            frame = frame.to(device)
+
+                            mean, std = frame.mean([1,2]), frame.std([1,2])
+
+                            if 0 in std:
+                                std[0] = std[1] = std[2] = 1
+
+                            frame = Normalize(mean, std)(frame).unsqueeze(0)
+
+                            past_frames.append(frame)
+                      
+                        if len(past_frames) % LENGTH_BATCH_OF_IMAGES == 0 or video_is_over is True:
+
+                            batch = torch.cat(past_frames, 0)
+                            past_frames = []
+
+                            predicted_ioc = model(batch)
+                            predicted_ioc = predicted_ioc.detach().squeeze().cpu().numpy().tolist()
+                            video_data[video_name] += predicted_ioc
 
                     output_file.write(json.dumps(video_data))
                     print("Fichier sauvegardé") 

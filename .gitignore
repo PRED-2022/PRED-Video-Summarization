@@ -175,3 +175,5 @@ deploy.prototxt.txt
 tv-sum-face-intensity.csv
 tv-sum-face-intensity.json
 tv-sum-iovc.json
+tv-sum-iovc-normalized.json
+tv-sum-iovc-normalized-TESTTESTESTSEETSTESETESTE.json

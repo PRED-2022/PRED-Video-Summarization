@@ -21,7 +21,7 @@ VIDEO_FOLDER = './tvsum/video/'
 IOVC_FILEPATH = './tv-sum-iovc-normalized-gpu-batch.json'
 IOVC_WEIGHTS = "./IOC_pytorch/weights/model_weights.pth"
 
-LENGTH_BATCH_OF_IMAGES = 30
+LENGTH_BATCH_OF_IMAGES = 25
 
 if __name__ == "__main__":
 
@@ -83,9 +83,7 @@ if __name__ == "__main__":
                             frame = Normalize(mean, std)(frame).unsqueeze(0)
 
                             past_frames.append(frame)
-                      
-                        if len(past_frames) % LENGTH_BATCH_OF_IMAGES == 0 or video_is_over is True:
-
+                        if len(past_frames) > 0 and (len(past_frames) % LENGTH_BATCH_OF_IMAGES == 0 or video_is_over is True):
                             batch = torch.cat(past_frames, 0)
                             past_frames = []
 
@@ -93,5 +91,7 @@ if __name__ == "__main__":
                             predicted_ioc = predicted_ioc.detach().squeeze().cpu().numpy().tolist()
                             video_data[video_name] += predicted_ioc
 
-            output_file.write(json.dumps(video_data))
-            print("Fichier sauvegardé") 
+                    output_file.seek(0)
+                    output_file.write(json.dumps(video_data))
+                    output_file.truncate()
+                    print("Fichier sauvegardé") 

@@ -21,7 +21,7 @@ VIDEO_FOLDER = './tvsum/video/'
 IOVC_FILEPATH = './tv-sum-iovc-normalized-gpu-batch.json'
 IOVC_WEIGHTS = "./IOC_pytorch/weights/model_weights.pth"
 
-LENGTH_BATCH_OF_IMAGES = 7
+LENGTH_BATCH_OF_IMAGES = 150
 
 if __name__ == "__main__":
 
@@ -56,14 +56,13 @@ if __name__ == "__main__":
 
                 i = 0
                 past_frames = []
-                video_analyse_task = progress.add_task("[blue]Analyse video : " + video_name, total=cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                video_analyse_task = progress.add_task("[blue]Analyse video : " + video_name, total=cap.get(cv2.CAP_PROP_FRAME_COUNT) // LENGTH_BATCH_OF_IMAGES + 1)
                
                 video_is_over = False
                 while cap.isOpened() and video_is_over is False:
                     ret, frame = cap.read()
                     i = i + 1
-                    progress.advance(video_analyse_task)
-
+                    
                     if not ret:
                         video_is_over = True
                     
@@ -89,6 +88,8 @@ if __name__ == "__main__":
                         predicted_ioc = model(batch)
                         predicted_ioc = predicted_ioc.squeeze().cpu().tolist()
                         video_data[video_name] += predicted_ioc
+
+                        progress.advance(video_analyse_task)
 
                 with open(IOVC_FILEPATH, 'w', newline='') as output_file:
                     json_obj = json.dumps(video_data)

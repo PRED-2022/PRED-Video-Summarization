@@ -37,6 +37,8 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(IOVC_WEIGHTS))
     model.to(device).eval()
    
+    normalize = Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
     with torch.no_grad():
 
         video_names = glob1(VIDEO_FOLDER, '*.flv') + glob1(VIDEO_FOLDER, '*.avi')
@@ -72,12 +74,7 @@ if __name__ == "__main__":
                         frame = preprocess(frame)
                         frame = frame.to(device)
 
-                        mean, std = frame.mean([1,2]), frame.std([1,2])
-
-                        if 0 in std:
-                            std[0] = std[1] = std[2] = 1
-
-                        frame = Normalize(mean, std)(frame).unsqueeze(0)
+                        frame = normalize(frame).unsqueeze(0)
 
                         past_frames.append(frame)
 

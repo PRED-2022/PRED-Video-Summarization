@@ -2,6 +2,7 @@ import glob
 import numpy as np 
 from scipy.io import loadmat
 import pandas as pd
+import h5py
 
 GT_PATH = "./SumMe/GT/"
 
@@ -31,7 +32,7 @@ def get_iovc(VIDEO_NAME):
 
 def get_summary(VIDEO_KEY):
     summaries = pd.read_csv('./SumMe-PGLSUM-summary.csv', sep=';', header=0)
-    summary_row = summaries[summaries['video_key'] == 'video_' + str(VIDEO_KEY)]
+    summary_row = summaries[summaries['video_key'] == VIDEO_KEY]
     if summary_row.empty:
         return []
     else:
@@ -40,14 +41,17 @@ def get_summary(VIDEO_KEY):
 
 
 if __name__ == "__main__":
-    videos_id = get_videos_id()
-    for index in range(len(videos_id)):
-        video_id = videos_id[index]
+    f = h5py.File('./PGL-SUM/data/SumMe/eccv16_dataset_summe_google_pool5.h5', 'r')
+
+    video_key_name = {}
+    for key in list(f.keys()):
+        video_name = f[key]['video_name'][()].decode()
+        video_key_name[video_name] = key
+
+    for video_id in get_videos_id():
         video_name = get_video_name(video_id)
 
         gt = get_groundtruth(video_id)
         memorability = get_memorability(video_name)
         iovc = get_iovc(video_name)
-        summary = get_summary(index+1)
-        
-        print(video_name, len(gt), "-", len(summary), len(gt) == len(summary))
+        summary = get_summary(video_key_name[video_name])

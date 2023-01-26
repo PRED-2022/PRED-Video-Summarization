@@ -87,7 +87,11 @@ if __name__ == "__main__":
 
                         predicted_ioc = model(batch)
                         predicted_ioc = predicted_ioc.squeeze().cpu().tolist()
-                        video_data[video_name] += predicted_ioc
+
+                        if isinstance(predicted_ioc, list):
+                            video_data[video_name] += predicted_ioc
+                        else:
+                            video_data[video_name] += [predicted_ioc]
 
                         progress.advance(video_analyse_task)
 

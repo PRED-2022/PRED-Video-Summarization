@@ -18,7 +18,7 @@ from rich.progress import Progress
 
 VIDEO_SIZE = (300, 400)
 VIDEO_FOLDER = './tvsum/video/'
-IOVC_FILEPATH = './tv-sum-iovc-normalized-gpu-batch.json'
+IOVC_FILEPATH = './TVsum-iovc.json'
 IOVC_WEIGHTS = "./IOC_pytorch/weights/model_weights.pth"
 
 LENGTH_BATCH_OF_IMAGES = 150
@@ -95,4 +95,3 @@ if __name__ == "__main__":
                 with open(IOVC_FILEPATH, 'w', newline='') as output_file:
                     json_obj = json.dumps(video_data)
                     output_file.write(json_obj)
-                    print("Fichier sauvegardé") 

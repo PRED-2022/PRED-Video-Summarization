@@ -6,11 +6,10 @@ import pandas as pd
 from scipy import stats
 from scipy.signal import savgol_filter
 from tslearn.barycenters import dtw_barycenter_averaging
-from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import csv
-
+from tslearn.clustering import TimeSeriesKMeans
 # Jeu de données TVSum
 # Source : http://people.csail.mit.edu/yalesong/tvsum/
 # Dossiers : ./tvsum/
@@ -30,11 +29,24 @@ def get_frames_importance(VIDEO_ID):
         importances_observer_i = list(map(int, importances_observer_i.split(',')))
         annotations_list.append(importances_observer_i)
 
-    return np.average(annotations_list, axis=0)
+    return np.mean(annotations_list, axis=0)
+
+def get_frames_summary(VIDEO_KEY):
+    summaries = pd.read_csv('./TVSum-PGLSUM-summary.csv', sep=';', header=0)
+    summary_row = summaries[summaries['video_key'] == 'video_' + str(VIDEO_KEY)]
+    if summary_row.empty:
+        return []
+    else:
+        summary_row = summary_row.summary.iloc[0]
+        return np.array(list(map(int, summary_row.split(','))))
 
 
+def get_frames_iovc(VIDEO_ID):
+    iovc_videos = pd.read_json("./TVSum-iovc.json", lines=True)
+    return iovc_videos[VIDEO_ID + '.mp4'].iloc[0]
+    
 def get_frames_memorability(VIDEO_ID):
-    mems = pd.read_csv('./tv-sum-mem-score.csv', sep=';', header=0)
+    mems = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0)
     mems_of_video = mems[mems['video_name'] == VIDEO_ID + '.mp4']
 
     if mems_of_video.empty:
@@ -52,7 +64,7 @@ def get_all_videos_id():
 def get_all_frames_importance():
     ground_truth = pd.read_csv('./tvsum/data/ydata-tvsum50-anno.tsv', sep='\t', header=None)
     ground_truth.columns = ['id', 'category', 'importance']
-    with open('./tvsum/data/groundtruth.csv', 'w', newline='') as csv_file:
+    with open('./TVSum-groundtruth.csv', 'w', newline='') as csv_file:
         writer = csv.writer(csv_file, delimiter=';')
         writer.writerow(['id', 'importance'])
 
@@ -65,13 +77,11 @@ def get_all_frames_importance():
                 importances_observer_i = list(map(int, importances_observer_i.split(',')))
                 annotations_list.append(importances_observer_i)
 
-            print(np.average(annotations_list, axis=0))
-
-            writer.writerow([video_id, ','.join(map(str,np.average(annotations_list, axis=0)))])
+            writer.writerow([video_id, ','.join(map(str,np.mean(annotations_list, axis=0)))])
 
 
 def read_correlations():
-    mems = pd.read_csv('./tv-sum-mem-score.csv', sep=';', header=0, usecols=['video_name','memorability_scores'])
+    mems = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0, usecols=['video_name','memorability_scores'])
 
     for index in range(len(mems)):
         video_id = mems.loc[index, 'video_name'].split('.')[0]
@@ -99,7 +109,7 @@ def read_correlations():
     plt.hist(spearmans, bins=bins)
     plt.xlabel('Corrélation de Spearman')
     plt.ylabel('Nombre de vidéos')
-    avg_spearman = np.average(mems['spearman'])
+    avg_spearman = np.mean(mems['spearman'])
     plt.axvline(x=avg_spearman, color='black', linestyle='--')
     plt.xlim(left=-1, right=1)
     plt.ylim(top=8)
@@ -108,20 +118,85 @@ def read_correlations():
     plt.hist(pearsons, bins=bins, color="orange")
     plt.xlabel('Corrélation de Pearson')
     plt.ylabel('Nombre de vidéos')
-    avg_pearson = np.average(mems['pearson'])
+    avg_pearson = np.mean(mems['pearson'])
     plt.axvline(x=avg_pearson, color='black', linestyle='--')
     plt.xlim(left=-1, right=1)
     plt.ylim(top=8)
 
-    print("Moyenne des corrélations absolues : Pearson = {} - Spearman = {}".format(np.average(np.abs(mems['pearson'])), np.average(np.abs(mems['spearman']))))
+    print("Moyenne des corrélations absolues : Pearson = {} - Spearman = {}".format(np.mean(np.abs(mems['pearson'])), np.mean(np.abs(mems['spearman']))))
     print("Moyenne des corrélations : Pearson = {} - Spearman = {}".format(avg_pearson, avg_spearman))
     plt.show()
 
 
-READ_CORRELATIONS = True
+def save_boxplot(video_id, data, feature_name, bottom=-1, top=-1):
+    if top != -1 and bottom != -1:
+        plt.ylim(top=top, bottom=bottom)
+    elif top != -1:
+        plt.ylim(top=top)
+    elif bottom != -1:
+        plt.ylim(bottom=bottom)
+    plt.boxplot(data, labels=["{} - {}".format(feature_name, video_id)])
+    plt.savefig('./Figures/Boxplots/TVSum/{}/{}.jpg'.format(feature_name, video_id))
+    plt.clf()
+
+ANOVA_TEST = True
+READ_CORRELATIONS = False
 DIM_REDUCTIONS_TEST = False
+SAVE_FIG = True
 
 if __name__ == "__main__":
+    if ANOVA_TEST:
+        all_groundtruth = []
+        all_memorability = []
+        all_summary = []
+        all_iovc = []
+
+        videos_id = get_all_videos_id()
+
+        with open('./TVSum-average.csv', 'w', newline='') as csv_file:
+            writer = csv.writer(csv_file, delimiter=';')
+            writer.writerow(['video_id', 'groundtruth_avg', 'memorability_avg', 'iovc_avg', 'summary_avg'])
+
+            for index in range(len(videos_id)):
+                video_id = videos_id[index]
+
+                groundtruth = get_frames_importance(video_id)
+                all_groundtruth.append(np.mean(groundtruth))
+
+                summary = get_frames_summary(index+1)
+                all_summary.append(np.mean(summary))
+                
+                memorability = get_frames_memorability(video_id)
+                if len(memorability) > len(groundtruth):
+                    memorability = memorability[:len(groundtruth)]
+                
+                all_memorability.append(np.mean(memorability))
+
+                iovc = get_frames_iovc(video_id)
+                iovc = iovc[:len(groundtruth)]
+                all_iovc.append(np.mean(iovc))
+                
+                if SAVE_FIG:
+                    save_boxplot(video_id, memorability, 'Memorability', 0.4, 1)
+                    save_boxplot(video_id, groundtruth, 'Groundtruth', 1, 5)
+                    save_boxplot(video_id, iovc, 'IOVC', 0)
+
+                writer.writerow([video_id, np.mean(groundtruth), np.mean(memorability), np.mean(iovc), np.mean(summary)])
+
+        plt.ylabel('Nombre de vidéos')
+
+        plt.xlabel('Vérité-terrain moyenne')
+        plt.hist(all_groundtruth)
+        plt.show()
+
+        plt.hist(all_memorability)
+        plt.xlabel('Mémorabilité moyenne')
+        plt.show()
+
+        plt.hist(all_iovc)
+        plt.xlabel('IOVC moyen')
+        plt.show()
+
     if READ_CORRELATIONS:
         read_correlations()
     if DIM_REDUCTIONS_TEST:
@@ -142,9 +217,24 @@ if __name__ == "__main__":
             frames_memorability = get_frames_memorability(video_id)
             if len(frames_memorability) > len(frames_importance):
                 frames_memorability = frames_memorability[:len(frames_importance)]
+
+            if SAVE_FIG:
+                plt.plot(frames_memorability)
+                plt.xlabel("Frames de la vidéo")
+                plt.ylabel("Mémorabilité")
+                plt.ylim(top=1, bottom=0.4)
+                plt.savefig("./Figures/Memorability/{}.png".format(video_id))
+                plt.clf()
             # lissage de la mémorabilité qui oscille beaucoup
-            frames_memorability = savgol_filter(frames_memorability, 72, 3)
+            frames_memorability = savgol_filter(frames_memorability, 72, 3).tolist()
             all_frames_memorability.append(frames_memorability)
+            if SAVE_FIG:
+                plt.plot(frames_memorability)
+                plt.xlabel("Frames de la vidéo")
+                plt.ylabel("Mémorabilité")
+                plt.ylim(top=1, bottom=0.4)
+                plt.savefig("./Figures/Memorability/{}_filtered.png".format(video_id))
+                plt.clf()
 
         x = np.concatenate(all_frames_importances)
         indices = np.where(x >= 3)
@@ -254,10 +344,11 @@ if __name__ == "__main__":
             Clustering KMeans
         """
 
-        cluster_count = 9
-        kmeans = KMeans(n_clusters=cluster_count)
+        cluster_count = 3
 
-        labels = kmeans.fit_predict(tsne_data)
+        kmeans = TimeSeriesKMeans(n_clusters=cluster_count, metric="dtw", max_iter=10)
+
+        labels = kmeans.fit_predict(windows_memorability)
         plot_count = math.ceil(math.sqrt(cluster_count))
         
 
@@ -276,7 +367,7 @@ if __name__ == "__main__":
                         cluster.append(windows_memorability[i])
             if len(cluster) > 0:
                 axs[row_i, column_j].plot(dtw_barycenter_averaging(np.vstack(cluster)),c="blue")
-                axs[row_i, column_j].plot(np.average(np.vstack(cluster), axis=0), c="red", alpha=0.8)
+                axs[row_i, column_j].plot(np.mean(np.vstack(cluster), axis=0), c="red", alpha=0.8)
             axs[row_i, column_j].set_title("Cluster "+str((row_i*plot_count)+column_j))
             column_j+=1
             if column_j%plot_count == 0:

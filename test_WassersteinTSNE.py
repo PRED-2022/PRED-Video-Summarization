@@ -4,14 +4,14 @@ import json
 import numpy as np
 
 with open("./TVsum-iovc.json") as json_file:
-    big_dict = json.load(json_file)
+    gros_tab = json.load(json_file)
 
     all_values = []
     index = []
     b_index = []
 
-    for key in big_dict.keys():
-        arr = big_dict[key]
+    for key in gros_tab.keys():
+        arr = gros_tab[key]
 
         index += np.arange(0, len(arr)).tolist()
         b_index += np.repeat(key, len(arr)).tolist()

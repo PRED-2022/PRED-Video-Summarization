@@ -11,9 +11,9 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import csv
 from tslearn.clustering import TimeSeriesKMeans
-from scipy.stats import wasserstein_distance
 from rich.progress import Progress
 import cv2
+from scipy.stats import wasserstein_distance
 
 # Jeu de données TVSum
 # Source : http://people.csail.mit.edu/yalesong/tvsum/
@@ -161,13 +161,41 @@ def save_plot(video_id, data, feature_name):
     plt.savefig('./Figures/Plots/TVSum/{}/{}.jpg'.format(feature_name, video_id))
     plt.clf()
 
-
+WASSERSTEIN_TEST = True
 ANOVA_TEST = False
-READ_CORRELATIONS = True
+READ_CORRELATIONS = False
 DIM_REDUCTIONS_TEST = False
 SAVE_FIG = False
 
 if __name__ == "__main__":
+    if WASSERSTEIN_TEST:
+        videos_id = get_all_videos_id()
+        # Création d'un CSV / matrice des distances entre les pairs de distribution d'IOVC de vidéos
+        if not path.isfile('./TVSum-IOVC-Wasserstein.csv'):
+            with open('./TVSum-IOVC-Wasserstein.csv', 'w', newline='') as csv_file:
+                dist_matrix = []
+                writer = csv.writer(csv_file, delimiter=';')
+                with Progress() as progress:
+                    video_task = progress.add_task("[red]Boucle video...", total=len(videos_id))
+                    writer.writerow(pd.concat([pd.Series(["videos_name"]), videos_id]))
+                    for a in range(len(videos_id)):
+                        progress.advance(video_task)
+                        video_a = videos_id[a]
+                        iovc_a = get_frames_iovc(video_a)
+                        dist_matrix.append([])
+                        video_analyse_task = progress.add_task("[blue]Calcul video : " + video_a, total=len(videos_id))
+                        for b in range(len(videos_id)):
+                            progress.advance(video_analyse_task)
+                            if a != b:
+                                video_b = videos_id[b]
+                                iovc_b = get_frames_iovc(video_b)
+                                w_dt = wasserstein_distance(iovc_a, iovc_b)
+                                dist_matrix[a].append(w_dt)
+                            else:
+                                dist_matrix[a].append("")
+                        writer.writerow([video_a] + dist_matrix[a])
+
+
     if ANOVA_TEST:
         all_groundtruth = []
         all_memorability = []

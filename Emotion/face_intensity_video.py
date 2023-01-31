@@ -14,16 +14,16 @@ import glob
 from tqdm import tqdm
 from rich.progress import Progress
 
-VIDEO_FOLDER = './tvsum/video/'
+VIDEO_FOLDER = 'M:/SumMe/'
 
-FACE_INTENSITY_FILEPATH = './tv-sum-face-intensity.csv'
+FACE_INTENSITY_FILEPATH = './SumMe-face-intensity.json'
 
 DISPLAY_VIDEO = False
 
 if __name__ == "__main__":
     m = RMN()
   
-    video_names = glob.glob1(VIDEO_FOLDER, '*.mp4')
+    video_names = glob.glob1(VIDEO_FOLDER, '*.webm')
 
     video_data = dict() 
     

@@ -183,3 +183,7 @@ SumMe-iovc.json
 VSUMM-OpenVideo-iovc.json
 VSUMM-Youtube-iovc.json
 TVsum-iovc.json
+SumMe-face-intensity.json
+TVsum-face-intensity.json
+PROCESSED-SumMe-face-intensity.json
+PROCESSED-TVsum-face-intensity.json

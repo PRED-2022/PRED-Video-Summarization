@@ -1,4 +1,5 @@
 import math
+from os import path
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 import numpy as np
@@ -10,12 +11,19 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import csv
 from tslearn.clustering import TimeSeriesKMeans
+from scipy.stats import wasserstein_distance
+from rich.progress import Progress
+import cv2
+
 # Jeu de données TVSum
 # Source : http://people.csail.mit.edu/yalesong/tvsum/
 # Dossiers : ./tvsum/
 #                    video/ : les vidéos annotées
 #                    data/ : annotations de l'importance des images des vidéos selon 20 observateurs
 #                            Importance entre 1 (basse) et 5 (forte)
+
+def get_video_framerate(video_id):
+    return cv2.VideoCapture("./tvsum/video/{}.mp4".format(video_id)).get(cv2.CAP_PROP_FPS)
 
 def get_frames_importance(VIDEO_ID):
     ground_truth = pd.read_csv('./tvsum/data/ydata-tvsum50-anno.tsv', sep='\t', header=None)
@@ -139,10 +147,21 @@ def save_boxplot(video_id, data, feature_name, bottom=-1, top=-1):
     plt.savefig('./Figures/Boxplots/TVSum/{}/{}.jpg'.format(feature_name, video_id))
     plt.clf()
 
-ANOVA_TEST = True
-READ_CORRELATIONS = False
+def save_plot(video_id, data, feature_name):
+    framerate = get_video_framerate(video_id)
+    nb_seconds = len(data)/framerate
+    plt.xlabel("Video in seconds")
+    plt.ylabel(feature_name)
+    plt.xticks(ticks=np.arange(0, len(data), 30*framerate), labels=[str(int(n)) for n in np.arange(0, nb_seconds, 30)], fontsize=8)
+    plt.plot(data)
+    plt.savefig('./Figures/Plots/TVSum/{}/{}.jpg'.format(feature_name, video_id))
+    plt.clf()
+
+
+ANOVA_TEST = False
+READ_CORRELATIONS = True
 DIM_REDUCTIONS_TEST = False
-SAVE_FIG = True
+SAVE_FIG = False
 
 if __name__ == "__main__":
     if ANOVA_TEST:
@@ -153,49 +172,67 @@ if __name__ == "__main__":
 
         videos_id = get_all_videos_id()
 
-        with open('./TVSum-average.csv', 'w', newline='') as csv_file:
-            writer = csv.writer(csv_file, delimiter=';')
-            writer.writerow(['video_id', 'groundtruth_avg', 'memorability_avg', 'iovc_avg', 'summary_avg'])
+        if path.isfile('./TVSum-average.csv'):
+            df = pd.read_csv('./TVSum-average.csv', sep=';', header=0)
+            max_iovc = df.iloc[df.iovc_avg.argmax(), 0]
+            min_iovc = df.iloc[df.iovc_avg.argmin(), 0]
+            max_memorability = df.iloc[df.memorability_avg.argmax(), 0]
+            min_memorability = df.iloc[df.memorability_avg.argmin(), 0]
+            max_groundtruth = df.iloc[df.groundtruth_avg.argmax(), 0]
+            min_groundtruth = df.iloc[df.groundtruth_avg.argmin(), 0]
 
-            for index in range(len(videos_id)):
-                video_id = videos_id[index]
+            print("IOVC -> max : {} | min : {}".format(max_iovc, min_iovc))
+            print("Memorability -> max : {} | min : {}".format(max_memorability, min_memorability))
+            print("Groundtruth -> max : {} | min : {}".format(max_groundtruth, min_groundtruth))
+        else:
+            with open('./TVSum-average.csv', 'w', newline='') as csv_file:
+                writer = csv.writer(csv_file, delimiter=';')
+                writer.writerow(['video_id', 'groundtruth_avg', 'memorability_avg', 'iovc_avg', 'summary_avg'])
+                with Progress() as progress:
+                    video_task = progress.add_task("[red]Boucle video...", total=len(videos_id))
+                    for index in range(len(videos_id)):
+                        progress.advance(video_task)
+                        video_id = videos_id[index]
 
-                groundtruth = get_frames_importance(video_id)
-                all_groundtruth.append(np.mean(groundtruth))
+                        groundtruth = get_frames_importance(video_id)
+                        all_groundtruth.append(np.mean(groundtruth))
 
-                summary = get_frames_summary(index+1)
-                all_summary.append(np.mean(summary))
-                
-                memorability = get_frames_memorability(video_id)
-                if len(memorability) > len(groundtruth):
-                    memorability = memorability[:len(groundtruth)]
-                
-                all_memorability.append(np.mean(memorability))
+                        summary = get_frames_summary(index+1)
+                        all_summary.append(np.mean(summary))
+                        
+                        memorability = get_frames_memorability(video_id)
+                        if len(memorability) > len(groundtruth):
+                            memorability = memorability[:len(groundtruth)]
+                        
+                        all_memorability.append(np.mean(memorability))
 
-                iovc = get_frames_iovc(video_id)
-                iovc = iovc[:len(groundtruth)]
-                all_iovc.append(np.mean(iovc))
-                
-                if SAVE_FIG:
-                    save_boxplot(video_id, memorability, 'Memorability', 0.4, 1)
-                    save_boxplot(video_id, groundtruth, 'Groundtruth', 1, 5)
-                    save_boxplot(video_id, iovc, 'IOVC', 0)
+                        iovc = get_frames_iovc(video_id)
+                        iovc = iovc[:len(groundtruth)]
+                        all_iovc.append(np.mean(iovc))
+                        
+                        if SAVE_FIG:
+                            save_boxplot(video_id, memorability, 'Memorability', 0.4, 1)
+                            save_boxplot(video_id, groundtruth, 'Groundtruth', 1, 5)
+                            save_boxplot(video_id, iovc, 'IOVC', 0, 4)
+                            save_plot(video_id, memorability, 'Memorability')
+                            save_plot(video_id, groundtruth, 'Groundtruth')
+                            save_plot(video_id, iovc, 'IOVC')
 
-                writer.writerow([video_id, np.mean(groundtruth), np.mean(memorability), np.mean(iovc), np.mean(summary)])
+                        writer.writerow([video_id, np.mean(groundtruth), np.mean(memorability), np.mean(iovc), np.mean(summary)])
 
-        plt.ylabel('Nombre de vidéos')
+            plt.ylabel('Nombre de vidéos')
 
-        plt.xlabel('Vérité-terrain moyenne')
-        plt.hist(all_groundtruth)
-        plt.show()
+            plt.xlabel('Vérité-terrain moyenne')
+            plt.hist(all_groundtruth)
+            plt.show()
 
-        plt.hist(all_memorability)
-        plt.xlabel('Mémorabilité moyenne')
-        plt.show()
+            plt.hist(all_memorability)
+            plt.xlabel('Mémorabilité moyenne')
+            plt.show()
 
-        plt.hist(all_iovc)
-        plt.xlabel('IOVC moyen')
-        plt.show()
+            plt.hist(all_iovc)
+            plt.xlabel('IOVC moyen')
+            plt.show()
 
     if READ_CORRELATIONS:
         read_correlations()
@@ -207,6 +244,7 @@ if __name__ == "__main__":
 
         all_frames_importances = []
         all_frames_memorability = []
+        all_frames_iovc = []
 
         videos_id = get_all_videos_id()
         for index in range(len(videos_id)):
@@ -215,8 +253,11 @@ if __name__ == "__main__":
             all_frames_importances.append(frames_importance)
 
             frames_memorability = get_frames_memorability(video_id)
+            frames_iovc = get_frames_iovc(video_id)
             if len(frames_memorability) > len(frames_importance):
                 frames_memorability = frames_memorability[:len(frames_importance)]
+            if len(frames_memorability) > len(frames_importance):
+                frames_iovc = frames_iovc[:len(frames_importance)]
 
             if SAVE_FIG:
                 plt.plot(frames_memorability)
@@ -228,6 +269,8 @@ if __name__ == "__main__":
             # lissage de la mémorabilité qui oscille beaucoup
             frames_memorability = savgol_filter(frames_memorability, 72, 3).tolist()
             all_frames_memorability.append(frames_memorability)
+            frames_iovc = savgol_filter(frames_iovc, 72, 3).tolist()
+            all_frames_iovc.append(frames_iovc)
             if SAVE_FIG:
                 plt.plot(frames_memorability)
                 plt.xlabel("Frames de la vidéo")
@@ -259,12 +302,16 @@ if __name__ == "__main__":
 
         windows_importance = []
         windows_memorability = []
+        windows_iovc = []
         for video_index in range(len(all_frames_importances)):
             # Vérité-terrain d'une vidéo (score de chaque frame)
             frames_importances = all_frames_importances[video_index]
 
             # Mémorabilité des frames d'une vidéo
             frames_memorability = all_frames_memorability[video_index]
+
+            # IOVC des frames d'une vidéo
+            frames_iovc = all_frames_iovc[video_index]
 
             # Nombre de frames de la vidéo = nombre de scores d'importance
             nb_frames_video = len(frames_importances)
@@ -276,6 +323,7 @@ if __name__ == "__main__":
                 else:
                     windows_importance.append(frames_importances[l_window:r_window])
                     windows_memorability.append(frames_memorability[l_window:r_window])
+                    windows_iovc.append(frames_iovc[l_window:r_window])
         
 
         """
@@ -283,6 +331,8 @@ if __name__ == "__main__":
         """
         """
             Analyse en composantes principales
+        """
+
         """
         pca = PCA(n_components=2)
 
@@ -330,10 +380,11 @@ if __name__ == "__main__":
             plt.arrow(0, 0, coeff[i,0], coeff[i,1], color='r', alpha=0.005, head_width=0.003)
 
         plt.show()
-
+        """
         """
             T-SNE
         """
+        
         tsne = TSNE(n_components=2, random_state=0)
         tsne_data = tsne.fit_transform(np.array(windows_memorability))
         plt.scatter(tsne_data[:,0], tsne_data[:,1], marker=".", alpha=0.5)
@@ -348,7 +399,7 @@ if __name__ == "__main__":
 
         kmeans = TimeSeriesKMeans(n_clusters=cluster_count, metric="dtw", max_iter=10)
 
-        labels = kmeans.fit_predict(windows_memorability)
+        labels = kmeans.fit_predict(windows_iovc)
         plot_count = math.ceil(math.sqrt(cluster_count))
         
 

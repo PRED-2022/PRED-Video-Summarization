@@ -89,50 +89,54 @@ def get_all_frames_importance():
 
 
 def read_correlations():
-    mems = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0, usecols=['video_name','memorability_scores'])
+    df = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0, usecols=['video_name','memorability_scores'])
 
-    for index in range(len(mems)):
-        video_id = mems.loc[index, 'video_name'].split('.')[0]
+    for index in range(len(df)):
+        video_id = df.loc[index, 'video_name'].split('.')[0]
         groundtruth = get_frames_importance(video_id)
-        memorability = list(map(float, mems.iloc[index]['memorability_scores'].split(',')))
+        memorability = list(map(float, df.iloc[index]['memorability_scores'].split(',')))
+        iovc = get_frames_iovc(video_id)
         if len(groundtruth) != len(memorability):
             memorability = memorability[:len(groundtruth)]
+            iovc = iovc[:len(groundtruth)]
 
-        mems.loc[index, 'pearson'] = stats.pearsonr(memorability, groundtruth).statistic
-        mems.loc[index, 'spearman'] = stats.spearmanr(memorability, groundtruth).correlation
-
-    pearsons = mems['pearson']
-    spearmans = mems['spearman']
-
-    index_max_corr = np.argmax(spearmans)
-    print(index_max_corr)
-    mem_max = list(map(float, mems.loc[index_max_corr, 'memorability_scores'].split(',')))
-    plt.plot(mem_max, c='blue')
-    plt.plot(savgol_filter(mem_max, 72, 3), c='orange')
-    plt.show()
+        df.loc[index, 'pearson_mem'] = stats.pearsonr(memorability, groundtruth).statistic
+        df.loc[index, 'spearman_mem'] = stats.spearmanr(memorability, groundtruth).correlation
+        df.loc[index, 'pearson_iovc'] = stats.pearsonr(iovc, groundtruth).statistic
+        df.loc[index, 'spearman_iovc'] = stats.spearmanr(iovc, groundtruth).correlation
 
     bins = np.arange(-1, 1, .1)
 
-    plt.subplot(1, 2, 1)
-    plt.hist(spearmans, bins=bins)
-    plt.xlabel('Corrélation de Spearman')
+    plt.subplot(2, 2, 1)
+    plt.hist(df['spearman_mem'], bins=bins)
+    plt.xlabel('Mémorabilité - Corrélation de Spearman')
     plt.ylabel('Nombre de vidéos')
-    avg_spearman = np.mean(mems['spearman'])
-    plt.axvline(x=avg_spearman, color='black', linestyle='--')
     plt.xlim(left=-1, right=1)
     plt.ylim(top=8)
 
-    plt.subplot(1, 2, 2)
-    plt.hist(pearsons, bins=bins, color="orange")
-    plt.xlabel('Corrélation de Pearson')
+    plt.subplot(2, 2, 2)
+    plt.hist(df['pearson_mem'], bins=bins, color="orange")
+    plt.xlabel('Mémorabilité - Corrélation de Pearson')
     plt.ylabel('Nombre de vidéos')
-    avg_pearson = np.mean(mems['pearson'])
-    plt.axvline(x=avg_pearson, color='black', linestyle='--')
     plt.xlim(left=-1, right=1)
     plt.ylim(top=8)
 
-    print("Moyenne des corrélations absolues : Pearson = {} - Spearman = {}".format(np.mean(np.abs(mems['pearson'])), np.mean(np.abs(mems['spearman']))))
-    print("Moyenne des corrélations : Pearson = {} - Spearman = {}".format(avg_pearson, avg_spearman))
+    plt.subplot(2, 2, 3)
+    plt.hist(df['spearman_iovc'], bins=bins)
+    plt.xlabel('IOVC - Corrélation de Spearman')
+    plt.ylabel('Nombre de vidéos')
+    plt.xlim(left=-1, right=1)
+    plt.ylim(top=8)
+
+    plt.subplot(2, 2, 4)
+    plt.hist(df['pearson_iovc'], bins=bins, color="orange")
+    plt.xlabel('IOVC - Corrélation de Pearson')
+    plt.ylabel('Nombre de vidéos')
+    plt.xlim(left=-1, right=1)
+    plt.ylim(top=8)
+
+    print("Mémorabilité - Moyenne des corrélations : Pearson = {} - Spearman = {}".format(np.mean(df['pearson_mem']), np.mean(df['spearman_mem'])))
+    print("IOVC - Moyenne des corrélations : Pearson = {} - Spearman = {}".format(np.mean(df['pearson_iovc']), np.mean(df['spearman_iovc'])))
     plt.show()
 
 

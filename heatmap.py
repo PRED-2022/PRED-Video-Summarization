@@ -21,8 +21,8 @@ ax.imshow(a, cmap='jet', interpolation='nearest')
 ax.set_xticks(np.arange(0, len(a)))
 ax.set_yticks(np.arange(0, len(a)))
 
-ax.set_xticklabels(first_line, rotation=90, fontsize=6)
-ax.set_yticklabels(first_line, fontsize=6)
+ax.set_xticklabels(first_line, rotation=90, fontsize=4)
+ax.set_yticklabels(first_line, fontsize=4)
 
 
 plt.title(f"TVSum {DATA_TYPE} Wasserstein")

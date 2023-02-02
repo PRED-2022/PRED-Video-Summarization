@@ -172,8 +172,8 @@ if __name__ == "__main__":
     if WASSERSTEIN_TEST:
         videos_id = get_all_videos_id()
         # Création d'un CSV / matrice des distances entre les pairs de distribution d'IOVC de vidéos
-        if not path.isfile('./TVSum-{WASSERSTEIN_TEST}-Wasserstein.csv'):
-            with open('./TVSum-{WASSERSTEIN_TEST}-Wasserstein.csv', 'w', newline='') as csv_file:
+        if not path.isfile(f'./TVSum-{WASSERSTEIN_TEST}-Wasserstein.csv'):
+            with open(f'./TVSum-{WASSERSTEIN_TEST}-Wasserstein.csv', 'w', newline='') as csv_file:
                 dist_matrix = []
                 writer = csv.writer(csv_file, delimiter=';')
                 with Progress() as progress:

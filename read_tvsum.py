@@ -52,7 +52,7 @@ def get_frames_summary(VIDEO_KEY):
 def get_frames_iovc(VIDEO_ID):
     iovc_videos = pd.read_json("./TVSum-iovc.json", lines=True)
     return iovc_videos[VIDEO_ID + '.mp4'].iloc[0]
-    
+
 def get_frames_memorability(VIDEO_ID):
     mems = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0)
     mems_of_video = mems[mems['video_name'] == VIDEO_ID + '.mp4']
@@ -85,11 +85,11 @@ def get_all_frames_importance():
                 importances_observer_i = list(map(int, importances_observer_i.split(',')))
                 annotations_list.append(importances_observer_i)
 
-            writer.writerow([video_id, ','.join(map(str,np.mean(annotations_list, axis=0)))])
+            writer.writerow([video_id, ','.join(map(str, np.mean(annotations_list, axis=0)))])
 
 
 def read_correlations():
-    df = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0, usecols=['video_name','memorability_scores'])
+    df = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0, usecols=['video_name', 'memorability_scores'])
 
     for index in range(len(df)):
         video_id = df.loc[index, 'video_name'].split('.')[0]
@@ -153,15 +153,16 @@ def save_boxplot(video_id, data, feature_name, bottom=-1, top=-1):
 
 def save_plot(video_id, data, feature_name):
     framerate = get_video_framerate(video_id)
-    nb_seconds = len(data)/framerate
+    nb_seconds = len(data) / framerate
     plt.xlabel("Video in seconds")
     plt.ylabel(feature_name)
-    plt.xticks(ticks=np.arange(0, len(data), 30*framerate), labels=[str(int(n)) for n in np.arange(0, nb_seconds, 30)], fontsize=8)
+    plt.xticks(ticks=np.arange(0, len(data), 30 * framerate), labels=[str(int(n)) for n in np.arange(0, nb_seconds, 30)], fontsize=8)
     plt.plot(data)
     plt.savefig('./Figures/Plots/TVSum/{}/{}.jpg'.format(feature_name, video_id))
     plt.clf()
 
-WASSERSTEIN_TEST = True
+
+WASSERSTEIN_TEST = "IOVC" # ou "Memorability" ou False pour ne pas le faire
 ANOVA_TEST = False
 READ_CORRELATIONS = False
 DIM_REDUCTIONS_TEST = False
@@ -171,8 +172,8 @@ if __name__ == "__main__":
     if WASSERSTEIN_TEST:
         videos_id = get_all_videos_id()
         # Création d'un CSV / matrice des distances entre les pairs de distribution d'IOVC de vidéos
-        if not path.isfile('./TVSum-IOVC-Wasserstein.csv'):
-            with open('./TVSum-IOVC-Wasserstein.csv', 'w', newline='') as csv_file:
+        if not path.isfile('./TVSum-{WASSERSTEIN_TEST}-Wasserstein.csv'):
+            with open('./TVSum-{WASSERSTEIN_TEST}-Wasserstein.csv', 'w', newline='') as csv_file:
                 dist_matrix = []
                 writer = csv.writer(csv_file, delimiter=';')
                 with Progress() as progress:
@@ -181,20 +182,19 @@ if __name__ == "__main__":
                     for a in range(len(videos_id)):
                         progress.advance(video_task)
                         video_a = videos_id[a]
-                        iovc_a = get_frames_iovc(video_a)
+                        iovc_a = get_frames_iovc(video_a) if WASSERSTEIN_TEST == "IOVC" else get_frames_memorability(video_a)
                         dist_matrix.append([])
                         video_analyse_task = progress.add_task("[blue]Calcul video : " + video_a, total=len(videos_id))
                         for b in range(len(videos_id)):
                             progress.advance(video_analyse_task)
                             if a != b:
                                 video_b = videos_id[b]
-                                iovc_b = get_frames_iovc(video_b)
+                                iovc_b = get_frames_iovc(video_b) if WASSERSTEIN_TEST == "IOVC" else get_frames_memorability(video_b)
                                 w_dt = wasserstein_distance(iovc_a, iovc_b)
                                 dist_matrix[a].append(w_dt)
                             else:
                                 dist_matrix[a].append("")
                         writer.writerow([video_a] + dist_matrix[a])
-
 
     if ANOVA_TEST:
         all_groundtruth = []
@@ -229,19 +229,19 @@ if __name__ == "__main__":
                         groundtruth = get_frames_importance(video_id)
                         all_groundtruth.append(np.mean(groundtruth))
 
-                        summary = get_frames_summary(index+1)
+                        summary = get_frames_summary(index + 1)
                         all_summary.append(np.mean(summary))
-                        
+
                         memorability = get_frames_memorability(video_id)
                         if len(memorability) > len(groundtruth):
                             memorability = memorability[:len(groundtruth)]
-                        
+
                         all_memorability.append(np.mean(memorability))
 
                         iovc = get_frames_iovc(video_id)
                         iovc = iovc[:len(groundtruth)]
                         all_iovc.append(np.mean(iovc))
-                        
+
                         if SAVE_FIG:
                             save_boxplot(video_id, memorability, 'Memorability', 0.4, 1)
                             save_boxplot(video_id, groundtruth, 'Groundtruth', 1, 5)
@@ -316,7 +316,7 @@ if __name__ == "__main__":
         y = np.concatenate(all_frames_memorability)
         plt.scatter(x[indices], y[indices], alpha=0.8, marker='.')
         a, b = np.polyfit(x[indices], y[indices], 1)
-        plt.plot(x[indices], a*x[indices]+b, color='red')
+        plt.plot(x[indices], a * x[indices] + b, color='red')
 
         #coefficients = np.polyfit(x[indices], y[indices], 2)
         #x_reg = np.linspace(x[indices].min(), x[indices].max(), 25)
@@ -348,15 +348,14 @@ if __name__ == "__main__":
             # Nombre de frames de la vidéo = nombre de scores d'importance
             nb_frames_video = len(frames_importances)
 
-            for l_window in range(0, len(frames_importances), 24*STRIDE_IN_SECOND):
-                r_window = l_window + 24*WINDOW_IN_SECOND
+            for l_window in range(0, len(frames_importances), 24 * STRIDE_IN_SECOND):
+                r_window = l_window + 24 * WINDOW_IN_SECOND
                 if r_window > len(frames_importances):
                     break
                 else:
                     windows_importance.append(frames_importances[l_window:r_window])
                     windows_memorability.append(frames_memorability[l_window:r_window])
                     windows_iovc.append(frames_iovc[l_window:r_window])
-        
 
         """
             Réduction de dimensions (ACP et T-SNE)
@@ -416,12 +415,11 @@ if __name__ == "__main__":
         """
             T-SNE
         """
-        
+
         tsne = TSNE(n_components=2, random_state=0)
         tsne_data = tsne.fit_transform(np.array(windows_memorability))
-        plt.scatter(tsne_data[:,0], tsne_data[:,1], marker=".", alpha=0.5)
+        plt.scatter(tsne_data[:, 0], tsne_data[:, 1], marker=".", alpha=0.5)
         plt.show()
-
 
         """
             Clustering KMeans
@@ -433,32 +431,30 @@ if __name__ == "__main__":
 
         labels = kmeans.fit_predict(windows_iovc)
         plot_count = math.ceil(math.sqrt(cluster_count))
-        
 
-        plt.scatter(tsne_data[:,0], tsne_data[:,1], marker=".", alpha=0.5, c=labels)
+        plt.scatter(tsne_data[:, 0], tsne_data[:, 1], marker=".", alpha=0.5, c=labels)
         plt.show()
 
-        fig, axs = plt.subplots(plot_count,plot_count,figsize=(15,15))
+        fig, axs = plt.subplots(plot_count, plot_count, figsize=(15, 15))
         fig.suptitle('Clusters')
-        row_i=0
-        column_j=0
+        row_i = 0
+        column_j = 0
         for label in set(labels):
             cluster = []
             for i in range(len(labels)):
-                    if(labels[i]==label):
-                        axs[row_i, column_j].plot(windows_memorability[i],c="gray",alpha=0.4)
-                        cluster.append(windows_memorability[i])
+                if (labels[i] == label):
+                    axs[row_i, column_j].plot(windows_memorability[i], c="gray", alpha=0.4)
+                    cluster.append(windows_memorability[i])
             if len(cluster) > 0:
-                axs[row_i, column_j].plot(dtw_barycenter_averaging(np.vstack(cluster)),c="blue")
+                axs[row_i, column_j].plot(dtw_barycenter_averaging(np.vstack(cluster)), c="blue")
                 axs[row_i, column_j].plot(np.mean(np.vstack(cluster), axis=0), c="red", alpha=0.8)
-            axs[row_i, column_j].set_title("Cluster "+str((row_i*plot_count)+column_j))
-            column_j+=1
-            if column_j%plot_count == 0:
-                row_i+=1
-                column_j=0
-                
-        plt.show()
+            axs[row_i, column_j].set_title("Cluster " + str((row_i * plot_count) + column_j))
+            column_j += 1
+            if column_j % plot_count == 0:
+                row_i += 1
+                column_j = 0
 
+        plt.show()
 
         """
             Application d'une méthode de clustering : K-Means

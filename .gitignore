@@ -193,3 +193,7 @@ TVSum-PGLSUM-summary.csv
 OLD-TVSum-GroundTruth.tsv
 TVSum-memorability.csv
 result_WxtbjNsCQ8A.npy
+TVSum-IOVC-Wasserstein.csv
+TVSum-IOVC-Wasserstein.png
+TVSum-Memorability-Wasserstein.png
+TVSum-Memorability-Wasserstein.csv

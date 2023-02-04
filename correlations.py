@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
-from math import ceil
+from math import ceil, isnan
 
 
 def save_hist(data, feature):
@@ -13,6 +13,15 @@ def save_hist(data, feature):
     plt.savefig('./Figures/Plots/TVSum/T-Test/{}.jpg'.format(feature))
     plt.clf()
 
+def save_hist_correlation(data, feature, correlation):
+    bins = np.arange(-1, 1, .1)
+    plt.hist(data, bins=bins)
+    plt.xlabel('{} - Corrélation de {}'.format(feature, correlation))
+    plt.ylabel('Nombre de vidéos')
+    plt.xlim(left=-1, right=1)
+    plt.ylim(top=8)
+    plt.savefig('./Figures/Plots/TVSum/Correlation/{}_{}.jpg'.format(correlation, feature))
+    plt.clf()
 
 # Ground Truth
 groundtruth_videos = pd.read_csv('./TVSum-groundtruth.csv', sep=';', header=0).set_index('id')
@@ -37,6 +46,10 @@ ttests_neutral = []
 ttests_fear = []
 ttests_sad = []
 ttests_surprise = []
+pearson_iovc = []
+pearson_mem = []
+spearman_iovc = []
+spearman_mem = []
 
 for key in iovc_videos.keys():
    
@@ -74,29 +87,39 @@ for key in iovc_videos.keys():
         frames incluses et les scores de celles non incluses
         dans le résumé vidéo (vérité-terrain)
     """
-    ttest_iovc = stats.ttest_ind(np.array(score_iovc).take(selected_indices), np.array(score_iovc).take(not_selected_indices))
-    ttest_mem = stats.ttest_ind(np.array(score_mem).take(selected_indices), np.array(score_mem).take(not_selected_indices))
-    ttest_nbr_face = stats.ttest_ind(np.array(df_emotions["nbr_face"]).take(selected_indices), np.array(df_emotions["nbr_face"]).take(not_selected_indices))
-    ttest_max_proba = stats.ttest_ind(np.array(df_emotions["max_proba"]).take(selected_indices), np.array(df_emotions["max_proba"]).take(not_selected_indices))
-    ttest_happy = stats.ttest_ind(np.array(df_emotions["happy"]).take(selected_indices), np.array(df_emotions["happy"]).take(not_selected_indices))
-    ttest_angry = stats.ttest_ind(np.array(df_emotions["angry"]).take(selected_indices), np.array(df_emotions["angry"]).take(not_selected_indices))
-    ttest_disgust = stats.ttest_ind(np.array(df_emotions["disgust"]).take(selected_indices), np.array(df_emotions["disgust"]).take(not_selected_indices))
-    ttest_neutral = stats.ttest_ind(np.array(df_emotions["neutral"]).take(selected_indices), np.array(df_emotions["neutral"]).take(not_selected_indices))
-    ttest_fear = stats.ttest_ind(np.array(df_emotions["fear"]).take(selected_indices), np.array(df_emotions["fear"]).take(not_selected_indices))
-    ttest_sad = stats.ttest_ind(np.array(df_emotions["sad"]).take(selected_indices), np.array(df_emotions["sad"]).take(not_selected_indices))
-    ttest_surprise = stats.ttest_ind(np.array(df_emotions["surprise"]).take(selected_indices), np.array(df_emotions["surprise"]).take(not_selected_indices))
-    
-    ttests_iovc.append(ttest_iovc.pvalue)
-    ttests_mem.append(ttest_mem.pvalue)
-    ttests_nbr_face.append(ttest_nbr_face.pvalue)
-    ttests_max_proba.append(ttest_max_proba.pvalue)
-    ttests_happy.append(ttest_happy.pvalue)
-    ttests_angry.append(ttest_angry.pvalue)
-    ttests_disgust.append(ttest_disgust.pvalue)
-    ttests_neutral.append(ttest_neutral.pvalue)
-    ttests_fear.append(ttest_fear.pvalue)
-    ttests_sad.append(ttest_sad.pvalue)
-    ttests_surprise.append(ttest_surprise.pvalue)
+    selected_iovc, not_selected_iovc = np.array(score_iovc).take(selected_indices), np.array(score_iovc).take(not_selected_indices)
+    selected_mem, not_selected_mem = np.array(score_mem).take(selected_indices), np.array(score_mem).take(not_selected_indices)
+    selected_nbr_face, not_selected_nbr_face = np.array(df_emotions["nbr_face"]).take(selected_indices), np.array(df_emotions["nbr_face"]).take(not_selected_indices)
+    selected_max_proba, not_selected_max_proba = np.array(df_emotions["max_proba"]).take(selected_indices), np.array(df_emotions["max_proba"]).take(not_selected_indices)
+    selected_happy, not_selected_happy = np.array(df_emotions["happy"]).take(selected_indices), np.array(df_emotions["happy"]).take(not_selected_indices)
+    selected_angry, not_selected_angry = np.array(df_emotions["angry"]).take(selected_indices), np.array(df_emotions["angry"]).take(not_selected_indices)
+    selected_disgust, not_selected_disgust = np.array(df_emotions["disgust"]).take(selected_indices), np.array(df_emotions["disgust"]).take(not_selected_indices)
+    selected_neutral, not_selected_neutral = np.array(df_emotions["neutral"]).take(selected_indices), np.array(df_emotions["neutral"]).take(not_selected_indices)
+    selected_fear, not_selected_fear = np.array(df_emotions["fear"]).take(selected_indices), np.array(df_emotions["fear"]).take(not_selected_indices)
+    selected_sad, not_selected_sad = np.array(df_emotions["sad"]).take(selected_indices), np.array(df_emotions["sad"]).take(not_selected_indices)
+    selected_surprise, not_selected_surprise = np.array(df_emotions["surprise"]).take(selected_indices), np.array(df_emotions["surprise"]).take(not_selected_indices)
+
+    """
+        Test de corrélation linéaire
+        Pearson & Spearman
+    """
+    pearson_iovc.append(stats.pearsonr(selected_frames, selected_iovc).statistic)
+    pearson_mem.append(stats.pearsonr(selected_frames, selected_mem).statistic)
+
+    spearman_iovc.append(stats.spearmanr(selected_frames, selected_iovc).correlation)
+    spearman_mem.append(stats.spearmanr(selected_frames, selected_mem).correlation)
+
+    ttests_iovc.append(stats.ttest_ind(selected_iovc, not_selected_iovc).pvalue)
+    ttests_mem.append(stats.ttest_ind(selected_mem, not_selected_mem).pvalue)
+    ttests_nbr_face.append(stats.ttest_ind(selected_nbr_face, not_selected_nbr_face).pvalue)
+    ttests_max_proba.append(stats.ttest_ind(selected_max_proba, not_selected_max_proba).pvalue)
+    ttests_happy.append(stats.ttest_ind(selected_happy, not_selected_happy).pvalue)
+    ttests_angry.append(stats.ttest_ind(selected_angry, not_selected_angry).pvalue)
+    ttests_disgust.append(stats.ttest_ind(selected_disgust, not_selected_disgust).pvalue)
+    ttests_neutral.append(stats.ttest_ind(selected_neutral, not_selected_neutral).pvalue)
+    ttests_fear.append(stats.ttest_ind(selected_fear, not_selected_fear).pvalue)
+    ttests_sad.append(stats.ttest_ind(selected_sad, not_selected_sad).pvalue)
+    ttests_surprise.append(stats.ttest_ind(selected_surprise, not_selected_surprise).pvalue)
 
 save_hist(ttests_iovc, "IOVC")
 save_hist(ttests_mem, "Memorabilité")
@@ -109,3 +132,8 @@ save_hist(ttests_neutral, "neutral")
 save_hist(ttests_fear, "fear")
 save_hist(ttests_sad, "sad")
 save_hist(ttests_surprise, "surprise")
+
+save_hist_correlation(pearson_iovc, "IOVC", "Pearson")
+save_hist_correlation(pearson_mem, "Memorabilité", "Pearson")
+save_hist_correlation(spearman_iovc, "IOVC", "Spearman")
+save_hist_correlation(spearman_mem, "Memorabilité", "Spearman")

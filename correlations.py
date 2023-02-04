@@ -2,38 +2,48 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
-from math import ceil, isnan
+from math import ceil
 
+
+DATABASE = "TVSum"
+
+
+VIDEO_EXTENSION = ""
+if DATABASE == "SumMe":
+    VIDEO_EXTENSION = ".webm"
+elif DATABASE == "TVSum":
+    VIDEO_EXTENSION = ".mp4"
 
 def save_hist(data, feature):
     plt.hist(data, bins=np.arange(0, np.max(data)+0.01, 0.01))
     plt.xlabel("P-Valeur")
     plt.ylabel("Nombre de vidéos")
     plt.title("Test de Student - {}".format(feature))
-    plt.savefig('./Figures/Plots/TVSum/T-Test/{}.jpg'.format(feature))
+    plt.savefig('./Figures/Plots/{}/T-Test/{}.jpg'.format(DATABASE, feature))
     plt.clf()
 
 def save_hist_correlation(data, feature, correlation):
     bins = np.arange(-1, 1, .1)
     plt.hist(data, bins=bins)
-    plt.xlabel('{} - Corrélation de {}'.format(feature, correlation))
+    plt.title(DATABASE + " - " + feature)
+    plt.xlabel('Corrélation de {}'.format(correlation))
     plt.ylabel('Nombre de vidéos')
     plt.xlim(left=-1, right=1)
     plt.ylim(top=8)
-    plt.savefig('./Figures/Plots/TVSum/Correlation/{}_{}.jpg'.format(correlation, feature))
+    plt.savefig('./Figures/Plots/{}/Correlation/{}_{}.jpg'.format(DATABASE, correlation, feature))
     plt.clf()
 
 # Ground Truth
-groundtruth_videos = pd.read_csv('./TVSum-groundtruth.csv', sep=';', header=0).set_index('id')
+groundtruth_videos = pd.read_csv('./{}-groundtruth.csv'.format(DATABASE), sep=';', header=0).set_index('id')
 
 # IOVC
-iovc_videos = pd.read_json("./TVSum-iovc.json", lines=True)
+iovc_videos = pd.read_json("./{}-iovc.json".format(DATABASE), lines=True)
 
 # Emotions
-emotion_videos = pd.read_json("./PROCESSED-TVsum-face-intensity.json", lines=True)
+emotion_videos = pd.read_json("./PROCESSED-{}-face-intensity.json".format(DATABASE), lines=True)
 
 # Memorability
-memorability_videos = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0).set_index("video_name")
+memorability_videos = pd.read_csv('./{}-memorability.csv'.format(DATABASE), sep=';', header=0).set_index("video_name")
 
 ttests_iovc = []
 ttests_mem = []
@@ -50,10 +60,13 @@ pearson_iovc = []
 pearson_mem = []
 spearman_iovc = []
 spearman_mem = []
+pearson_iovc_not = []
+pearson_mem_not = []
+spearman_iovc_not = []
+spearman_mem_not = []
 
 for key in iovc_videos.keys():
-   
-    score_gt = np.array(groundtruth_videos.loc[key.replace(".mp4", ""), "importance"].split(",")).astype(float)
+    score_gt = np.array(groundtruth_videos.loc[key.replace(VIDEO_EXTENSION, ""), "importance"].split(",")).astype(float)
     score_iovc = np.array(iovc_videos[key].iloc[0], dtype=float)
     score_mem = np.array(memorability_videos.loc[key, "memorability_scores"].split(",")).astype(float)
 
@@ -105,21 +118,26 @@ for key in iovc_videos.keys():
     """
     pearson_iovc.append(stats.pearsonr(selected_frames, selected_iovc).statistic)
     pearson_mem.append(stats.pearsonr(selected_frames, selected_mem).statistic)
-
     spearman_iovc.append(stats.spearmanr(selected_frames, selected_iovc).correlation)
     spearman_mem.append(stats.spearmanr(selected_frames, selected_mem).correlation)
 
+    pearson_iovc_not.append(stats.pearsonr(not_selected_frames, not_selected_iovc).statistic)
+    pearson_mem_not.append(stats.pearsonr(not_selected_frames, not_selected_mem).statistic)
+    spearman_iovc_not.append(stats.spearmanr(not_selected_frames, not_selected_iovc).correlation)
+    spearman_mem_not.append(stats.spearmanr(not_selected_frames, not_selected_mem).correlation)
+
     ttests_iovc.append(stats.ttest_ind(selected_iovc, not_selected_iovc).pvalue)
     ttests_mem.append(stats.ttest_ind(selected_mem, not_selected_mem).pvalue)
-    ttests_nbr_face.append(stats.ttest_ind(selected_nbr_face, not_selected_nbr_face).pvalue)
-    ttests_max_proba.append(stats.ttest_ind(selected_max_proba, not_selected_max_proba).pvalue)
-    ttests_happy.append(stats.ttest_ind(selected_happy, not_selected_happy).pvalue)
-    ttests_angry.append(stats.ttest_ind(selected_angry, not_selected_angry).pvalue)
-    ttests_disgust.append(stats.ttest_ind(selected_disgust, not_selected_disgust).pvalue)
-    ttests_neutral.append(stats.ttest_ind(selected_neutral, not_selected_neutral).pvalue)
-    ttests_fear.append(stats.ttest_ind(selected_fear, not_selected_fear).pvalue)
-    ttests_sad.append(stats.ttest_ind(selected_sad, not_selected_sad).pvalue)
-    ttests_surprise.append(stats.ttest_ind(selected_surprise, not_selected_surprise).pvalue)
+    if not (np.max(selected_nbr_face) == 0 and np.max(not_selected_nbr_face) == 0):
+        ttests_nbr_face.append(stats.ttest_ind(selected_nbr_face, not_selected_nbr_face).pvalue)
+        ttests_max_proba.append(stats.ttest_ind(selected_max_proba, not_selected_max_proba).pvalue)
+        ttests_happy.append(stats.ttest_ind(selected_happy, not_selected_happy).pvalue)
+        ttests_angry.append(stats.ttest_ind(selected_angry, not_selected_angry).pvalue)
+        ttests_disgust.append(stats.ttest_ind(selected_disgust, not_selected_disgust).pvalue)
+        ttests_neutral.append(stats.ttest_ind(selected_neutral, not_selected_neutral).pvalue)
+        ttests_fear.append(stats.ttest_ind(selected_fear, not_selected_fear).pvalue)
+        ttests_sad.append(stats.ttest_ind(selected_sad, not_selected_sad).pvalue)
+        ttests_surprise.append(stats.ttest_ind(selected_surprise, not_selected_surprise).pvalue)
 
 save_hist(ttests_iovc, "IOVC")
 save_hist(ttests_mem, "Memorabilité")
@@ -133,7 +151,11 @@ save_hist(ttests_fear, "fear")
 save_hist(ttests_sad, "sad")
 save_hist(ttests_surprise, "surprise")
 
-save_hist_correlation(pearson_iovc, "IOVC", "Pearson")
-save_hist_correlation(pearson_mem, "Memorabilité", "Pearson")
-save_hist_correlation(spearman_iovc, "IOVC", "Spearman")
-save_hist_correlation(spearman_mem, "Memorabilité", "Spearman")
+save_hist_correlation(pearson_iovc, "IOVC frames sélectionnées", "Pearson")
+save_hist_correlation(pearson_mem, "Memorabilité frames sélectionnées", "Pearson")
+save_hist_correlation(spearman_iovc, "IOVC frames sélectionnées", "Spearman")
+save_hist_correlation(spearman_mem, "Memorabilité frames sélectionnées", "Spearman")
+save_hist_correlation(pearson_iovc_not, "IOVC frames non sélectionnées", "Pearson")
+save_hist_correlation(pearson_mem_not, "Memorabilité frames non sélectionnées", "Pearson")
+save_hist_correlation(spearman_iovc_not, "IOVC frames non sélectionnées", "Spearman")
+save_hist_correlation(spearman_mem_not, "Memorabilité frames non sélectionnées", "Spearman")

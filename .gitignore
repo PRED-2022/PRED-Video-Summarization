@@ -1,5 +1,5 @@
 # Dossier perso
-
+*.pt
 video/
 paperwithcode/
 .vscode/

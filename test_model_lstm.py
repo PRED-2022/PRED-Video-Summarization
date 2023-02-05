@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import r2_score
-
+from numpy.lib.stride_tricks import sliding_window_view
 from rich.progress import Progress
 
 # Ground Truth
@@ -25,7 +25,10 @@ emotion_videos = pd.read_json("./PROCESSED-TVsum-face-intensity.json", lines=Tru
 # Memorability
 memorability_videos = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0).set_index("video_name")
 
-big_df = None
+big_df = []
+
+NBR_FEATURES = 11
+WINDOW_SIZE = 20
 
 # Création du big tableau
 for key in iovc_videos.keys():
@@ -49,43 +52,40 @@ for key in iovc_videos.keys():
     df["memorability"] = score_mem
     df["gt"] = score_gt
 
-    if big_df is None:
-        big_df = df
-    else:
-        big_df = pd.concat([big_df, df], axis=0)
+    df = df.to_numpy()
+    df_2 = sliding_window_view(df, WINDOW_SIZE, axis=0) #.reshape((-1, WINDOW_SIZE, 12))
+    big_df.append(df_2)
 
-print(big_df)
+big_df = np.array([item for sublist in big_df for item in sublist])
+
+print("Dataset of shape :", big_df.shape)
 
 ###################################################################################
 
 class MyDataset(torch.utils.data.Dataset):
-
     def __init__(self, data):
-        # scaler = StandardScaler()
-        # data_gt = data["gt"]
-        # data.drop(inplace=True, columns="gt")
-        # data = scaler.fit_transform(data)
         self.data = data
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        b = self.data.iloc[idx]
-        x = b["gt"]
-        b = b.drop("gt")
-        b = b.to_numpy()
-        return torch.as_tensor(b), torch.as_tensor(x)
+        b = self.data[idx].T
+        gt = b[:, -1][-1]
+        data = b[:, :-1]        
+        return torch.as_tensor(data.flatten()), torch.as_tensor(gt)
 
-class MLP(nn.Module):
+class MLP_LSTM(nn.Module):
     def __init__(self):
-        super(MLP, self).__init__()
+        super(MLP_LSTM, self).__init__()
         self.layers = torch.nn.Sequential(
-            torch.nn.Linear(11, 64),
+            torch.nn.Linear(WINDOW_SIZE * 11, 512),
             torch.nn.ReLU(),
-            torch.nn.Linear(64, 32),
+            torch.nn.Linear(512, 256),
             torch.nn.ReLU(),
-            torch.nn.Linear(32, 1)
+            torch.nn.Linear(256, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 1)
         )
 
     def forward(self, x):
@@ -107,15 +107,15 @@ testloader = torch.utils.data.DataLoader(test_df, batch_size=256, shuffle=True)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Initialize the MLP
-mlp = MLP()
-mlp.to(device)
+mlp_lstm = MLP_LSTM()
+mlp_lstm.to(device)
 
 # Define the loss function and optimizer
 loss_function = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(mlp.parameters(), lr=1e-5)
+optimizer = torch.optim.Adam(mlp_lstm.parameters(), lr=1e-5)
 
 # Run the training loop
-for epoch in range(0, 25):  # 5 epochs at maximum
+for epoch in range(0, 250):  # 5 epochs at maximum
 
     # Set current loss value
     current_loss = 0.0
@@ -142,7 +142,7 @@ for epoch in range(0, 25):  # 5 epochs at maximum
             optimizer.zero_grad()
 
             # Perform forward pass
-            outputs = mlp(inputs)
+            outputs = mlp_lstm(inputs)
 
             # Compute loss
             loss = loss_function(outputs, targets)
@@ -165,7 +165,6 @@ for epoch in range(0, 25):  # 5 epochs at maximum
 
             progress.advance(task)
 
-
     # Validation loop
     with Progress() as progress:
         task = progress.add_task("Epoch %d - Validation" % (epoch), total=len(testloader))
@@ -175,16 +174,15 @@ for epoch in range(0, 25):  # 5 epochs at maximum
                 inputs, targets = test_data
                 inputs, targets = inputs.float().to(device), targets.float().to(device)
                 targets = targets.reshape((targets.shape[0], 1))
-                outputs = mlp(inputs)
+                outputs = mlp_lstm(inputs)
                 loss = loss_function(outputs, targets)
-              
+
                 validation_loss += loss.item()
 
                 s_o_v = torch.cat((s_o_v, outputs.squeeze().cpu())).detach()
                 s_t_v = torch.cat((s_t_v, targets.squeeze().cpu())).detach()
-                
-                progress.advance(task)
 
+                progress.advance(task)
 
     train_r2 = r2_score(s_t, s_o)
     train_loss = train_loss / len(trainloader)
@@ -192,7 +190,7 @@ for epoch in range(0, 25):  # 5 epochs at maximum
     val_loss = validation_loss / len(testloader)
 
     print(f'Epoch {epoch} \t Training Loss={train_loss} - R²={train_r2} \t Validation Loss={val_loss} - R²={val_r2}\n')
-    torch.save(mlp, "nn_best_on_validation_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (epoch, train_loss, train_r2, val_r2))
+    torch.save(mlp_lstm, "sequence_nn_%d_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_r2))
 
 
 # Process is complete.

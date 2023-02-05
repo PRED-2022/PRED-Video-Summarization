@@ -99,10 +99,11 @@ else:
     regr_model = pickle.load(open('model_regression_SVR_input_normalized.sav', 'rb'))
     print("Model loaded")
 
-# print("Accuracy R² sur jeux de validation :", regr_model.score(valid_df, valid_df_gt))
-# print("Accuracy R² sur jeux de test :", regr_model.score(test_df, test_df_gt))
+print("Accuracy R² sur jeux de validation :", regr_model.score(valid_df, valid_df_gt))
+print("Accuracy R² sur jeux de test :", regr_model.score(test_df, test_df_gt))
+print("Accuracy R² sur la video à inférer :", regr_model.score(vid_df, vid_df_gt))
+
 print(len(vid_df))
-# print("Accuracy R² sur la video à inférer :", regr_model.score(vid_df, vid_df_gt))
 
 vals_predicted = regr_model.predict(vid_df)
 print(vals_predicted)

@@ -6,6 +6,10 @@ paperwithcode/
 Figures/
 vsumm/
 tvsum/
+SumMe/
+PGL-SUM/
+*.csv
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

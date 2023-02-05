@@ -3,6 +3,7 @@ import numpy as np
 from scipy.io import loadmat
 import pandas as pd
 import h5py
+import csv
 
 GT_PATH = "./SumMe/GT/"
 
@@ -48,10 +49,11 @@ if __name__ == "__main__":
         video_name = f[key]['video_name'][()].decode()
         video_key_name[video_name] = key
 
-    for video_id in get_videos_id():
-        video_name = get_video_name(video_id)
+    with open('./SumMe-groundtruth.csv', 'w', newline='') as csv_file:
+        writer = csv.writer(csv_file, delimiter=';')
+        writer.writerow(['id', 'importance'])
 
-        gt = get_groundtruth(video_id)
-        memorability = get_memorability(video_name)
-        iovc = get_iovc(video_name)
-        summary = get_summary(video_key_name[video_name])
+        for video_id in get_videos_id():
+            video_name = get_video_name(video_id)
+            gt = get_groundtruth(video_id)
+            writer.writerow([video_name, ','.join(map(str, gt))])

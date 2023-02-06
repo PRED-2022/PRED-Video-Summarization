@@ -63,8 +63,6 @@ big_df.drop(inplace=True, columns="gt")
 feature_names = big_df.columns
 big_df = big_df.to_numpy()
 
-f, axes = plt.subplots(1, 5, figsize=(20, 5), sharey='row')
-
 auc = []
 fp_tp_rates = []
 kf = KFold(n_splits=5, shuffle=True)
@@ -96,16 +94,18 @@ for i, (train_index, test_index) in enumerate(kf.split(big_df)):
     auc.append(metrics.auc(fp_rate, tp_rate))
 
 # Sauvegarde des matrices de confusion
-fig, ax = plt.subplots(1, len(confusion_matrices), figsize=(15, 5))
+fig, ax = plt.subplots(1, len(confusion_matrices), figsize=(15, 5), sharey='row')
 
 for i, conf_mat in enumerate(confusion_matrices):
     disp = metrics.ConfusionMatrixDisplay(conf_mat)
-    disp.plot(ax=ax[i])
+    disp.plot(ax=ax[i], xticks_rotation=45)
     disp.ax_.set_title("Split " + str(i))
     disp.im_.colorbar.remove()
     if i!=0:
         disp.ax_.set_ylabel('')
 
+plt.subplots_adjust(wspace=0.40, hspace=0.1)
+fig.colorbar(disp.im_, ax=ax)
 fig.savefig("confusion_matrices.png")
 plt.close('all')
 

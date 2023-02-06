@@ -2,7 +2,6 @@ from math import ceil
 import numpy as np
 import pandas as pd
 from sklearn import metrics
-from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
@@ -61,13 +60,15 @@ for key in iovc_videos.keys():
 
 big_gt = big_df["gt"]
 big_df.drop(inplace=True, columns="gt")
+feature_names = big_df.columns
 big_df = big_df.to_numpy()
 
-# Entrainement du réseau
-binary_classif_model = DecisionTreeClassifier(max_depth=10)
+f, axes = plt.subplots(1, 5, figsize=(20, 5), sharey='row')
 
 auc = []
-kf = KFold(n_splits=6, shuffle=True)
+fp_tp_rates = []
+kf = KFold(n_splits=5, shuffle=True)
+confusion_matrices = []
 for i, (train_index, test_index) in enumerate(kf.split(big_df)):
     # Récupération des éléments du groupe actuel
     X_train, X_test = big_df[train_index], big_df[test_index]
@@ -78,16 +79,41 @@ for i, (train_index, test_index) in enumerate(kf.split(big_df)):
     binary_classif_model = DecisionTreeClassifier(max_depth=10, random_state=0)
     binary_classif_model.fit(X_train, y_train)
 
-    # Prédiction
-    y_test_pred = binary_classif_model.predict_proba(X_test)[:, 1]
+    # Prédiction sur les donnees de test
+    y_test_pred = binary_classif_model.predict(X_test)
+    
+    # Calcul de la matrice de confusion
+    confusion_matrices.append(metrics.confusion_matrix(y_test, y_test_pred, normalize='pred'))
+
+    # Prédiction des scores plutôt que binaire
+    y_test_pred_score = binary_classif_model.predict_proba(X_test)[:, 1]
 
     # Courbe ROC
-    fp_rate, tp_rate, thresholds = metrics.roc_curve(y_test, y_test_pred)
-    plt.plot(fp_rate, tp_rate, linestyle='--', marker='o') 
+    fp_rate, tp_rate, thresholds = metrics.roc_curve(y_test, y_test_pred_score)
+    fp_tp_rates.append((fp_rate, tp_rate))
 
     # AUC
     auc.append(metrics.auc(fp_rate, tp_rate))
 
+# Sauvegarde des matrices de confusion
+fig, ax = plt.subplots(1, len(confusion_matrices), figsize=(15, 5))
+
+for i, conf_mat in enumerate(confusion_matrices):
+    disp = metrics.ConfusionMatrixDisplay(conf_mat)
+    disp.plot(ax=ax[i])
+    disp.ax_.set_title("Split " + str(i))
+    disp.im_.colorbar.remove()
+    if i!=0:
+        disp.ax_.set_ylabel('')
+
+fig.savefig("confusion_matrices.png")
+plt.close('all')
+
+
+plt.figure(figsize=(10, 10))
+# Affichage Courbe ROC
+for fp_rate, tp_rate in fp_tp_rates:
+    plt.plot(fp_rate, tp_rate, linestyle='--', marker='o') 
 
 plt.plot([0, 1], [0, 1], 'r--')
 plt.ylabel("Taux de vrai positif : v(s)")
@@ -99,3 +125,4 @@ auc = np.array(auc)
 print("Valeur AUC de chaque modèle :", auc)
 print("Précision - moyennes des AUC :", np.mean(auc))
 print("Robustesse - écart-type des AUC :", np.std(auc))
+

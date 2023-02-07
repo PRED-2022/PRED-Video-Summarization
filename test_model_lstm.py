@@ -28,7 +28,7 @@ memorability_videos = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0)
 big_df = []
 
 NBR_FEATURES = 11
-WINDOW_SIZE = 20
+WINDOW_SIZE = 100
 
 # Création du big tableau
 for key in iovc_videos.keys():
@@ -190,7 +190,7 @@ for epoch in range(0, 250):  # 5 epochs at maximum
     val_loss = validation_loss / len(testloader)
 
     print(f'Epoch {epoch} \t Training Loss={train_loss} - R²={train_r2} \t Validation Loss={val_loss} - R²={val_r2}\n')
-    torch.save(mlp_lstm, "sequence_nn_%d_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_r2))
+    torch.save(mlp_lstm, "sequence_nn_512_%d_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_r2))
 
 
 # Process is complete.

@@ -3,6 +3,7 @@ from glob import glob
 import numpy as np
 import pandas as pd
 from sklearn import svm
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import pickle
 import torch
@@ -11,8 +12,6 @@ import torch.nn.functional as F
 from sklearn.metrics import r2_score
 from numpy.lib.stride_tricks import sliding_window_view
 from rich.progress import Progress
-
-VALIDATION_VIDEO = ["i3wAGJaaktw.mp4", "98MoyGZKHXc.mp4", "byxOvuiIJV0.mp4", "eQu1rNs0an0.mp4", "Yi4Ij2NM7U4.mp4", "sTEELN-vY30.mp4", "_xMr-HKMfVA.mp4", "WxtbjNsCQ8A.mp4", "gzDbaEs1Rlg.mp4", "WG0MBPpPC6I.mp4"]
 
 # Ground Truth
 groundtruth_videos = pd.read_csv('./TVSum-groundtruth.csv', sep=';', header=0).set_index('id')
@@ -29,10 +28,11 @@ memorability_videos = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0)
 big_df = []
 
 NBR_FEATURES = 11
-WINDOW_SIZE = 75
+WINDOW_SIZE = 100
 
-# Chargement des données des videos
-def readVideoData(key):
+# Création du big tableau
+for key in iovc_videos.keys():
+
     score_gt = np.array(groundtruth_videos.loc[key.replace(".mp4", ""), "importance"].split(",")).astype(float)
     score_iovc = np.array(iovc_videos[key].iloc[0], dtype=float)
     score_mem = np.array(memorability_videos.loc[key, "memorability_scores"].split(",")).astype(float)
@@ -53,25 +53,12 @@ def readVideoData(key):
     df["gt"] = score_gt
 
     df = df.to_numpy()
-    df_2 = sliding_window_view(df, WINDOW_SIZE, axis=0)
-    return df_2
+    df_2 = sliding_window_view(df, WINDOW_SIZE, axis=0) #.reshape((-1, WINDOW_SIZE, 12))
+    big_df.append(df_2)
 
+big_df = np.array([item for sublist in big_df for item in sublist])
 
-# Donnée d'entrainement
-train_df = []
-for key in iovc_videos.keys():
-    if key not in VALIDATION_VIDEO:
-        train_df.append(readVideoData(key))
-train_df = np.array([item for sublist in train_df for item in sublist])
-
-# Donnée de validation
-val_df = []
-for key in VALIDATION_VIDEO:
-    val_df.append(readVideoData(key))
-val_df = np.array([item for sublist in val_df for item in sublist])
-
-print("Dataset training of shape :", train_df.shape)
-print("Dataset validation of shape :", val_df.shape)
+print("Dataset of shape :", big_df.shape)
 
 ###################################################################################
 
@@ -85,16 +72,14 @@ class MyDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         b = self.data[idx].T
         gt = b[:, -1][-1]
-        data = b[:, :-1]
-        return torch.as_tensor(data), torch.as_tensor(gt)
+        data = b[:, :-1]        
+        return torch.as_tensor(data.flatten()), torch.as_tensor(gt)
 
 class MLP_LSTM(nn.Module):
     def __init__(self):
         super(MLP_LSTM, self).__init__()
-
-        self.lstm = torch.nn.LSTM(11, 512, batch_first=True)
-
         self.layers = torch.nn.Sequential(
+            torch.nn.Linear(WINDOW_SIZE * 11, 512),
             torch.nn.ReLU(),
             torch.nn.Linear(512, 256),
             torch.nn.ReLU(),
@@ -104,8 +89,7 @@ class MLP_LSTM(nn.Module):
         )
 
     def forward(self, x):
-        output, _ = self.lstm(x)
-        x = self.layers(output[:, -1, :])
+        x = self.layers(x)
         return x
 
 ###################################################################################
@@ -114,10 +98,11 @@ class MLP_LSTM(nn.Module):
 
 
 # Dataset
+train_df, test_df = train_test_split(big_df, test_size=0.1, random_state=1)
 train_df = MyDataset(train_df)
-val_df = MyDataset(val_df)
+test_df = MyDataset(test_df)
 trainloader = torch.utils.data.DataLoader(train_df, batch_size=256, shuffle=True)
-valloader = torch.utils.data.DataLoader(val_df, batch_size=256, shuffle=True)
+testloader = torch.utils.data.DataLoader(test_df, batch_size=256, shuffle=True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -164,7 +149,6 @@ for epoch in range(0, 250):  # 5 epochs at maximum
 
             # Perform backward pass
             loss.backward()
-            train_loss += loss.item()
 
             # Perform optimization
             optimizer.step()
@@ -173,22 +157,21 @@ for epoch in range(0, 250):  # 5 epochs at maximum
             s_t = torch.cat((s_t, targets.squeeze().cpu())).detach()
 
             # Print statistics
-            if False:
-                current_loss += loss.item()
-                if i % 100 == 0:
-                    progress.console.print('Loss after batch %5d: %.3f - R²=%.3f' % (i + 1, current_loss / 500, r2_score(s_t, s_o)))
-                    current_loss = 0.0
-            
-            # Move progress of one batch
+            current_loss += loss.item()
+            train_loss += loss.item()
+            if i % 100 == 0:
+                progress.console.print('Loss after batch %5d: %.3f - R²=%.3f' % (i + 1, current_loss / 500, r2_score(s_t, s_o)))
+                current_loss = 0.0
+
             progress.advance(task)
 
     # Validation loop
     with Progress() as progress:
-        task = progress.add_task("Epoch %d - Validation" % (epoch), total=len(valloader))
+        task = progress.add_task("Epoch %d - Validation" % (epoch), total=len(testloader))
         with torch.no_grad():
 
-            for y, val_data in enumerate(valloader, 0):
-                inputs, targets = val_data
+            for y, test_data in enumerate(testloader, 0):
+                inputs, targets = test_data
                 inputs, targets = inputs.float().to(device), targets.float().to(device)
                 targets = targets.reshape((targets.shape[0], 1))
                 outputs = mlp_lstm(inputs)
@@ -204,10 +187,10 @@ for epoch in range(0, 250):  # 5 epochs at maximum
     train_r2 = r2_score(s_t, s_o)
     train_loss = train_loss / len(trainloader)
     val_r2 = r2_score(s_t_v, s_o_v)
-    val_loss = validation_loss / len(valloader)
+    val_loss = validation_loss / len(testloader)
 
-    print(f'Epoch {epoch} - Training Loss={train_loss} - R²={train_r2} \t Validation Loss={val_loss} - R²={val_r2}\n')
-    torch.save(mlp_lstm, "sequence_lstm_nn_512_%d_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_r2))
+    print(f'Epoch {epoch} \t Training Loss={train_loss} - R²={train_r2} \t Validation Loss={val_loss} - R²={val_r2}\n')
+    torch.save(mlp_lstm, "sequence_nn_512_%d_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_r2))
 
 
 # Process is complete.

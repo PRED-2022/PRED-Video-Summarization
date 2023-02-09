@@ -13,6 +13,8 @@ from sklearn.metrics import r2_score
 from numpy.lib.stride_tricks import sliding_window_view
 from rich.progress import Progress
 
+VALIDATION_VIDEO = ["i3wAGJaaktw.mp4", "98MoyGZKHXc.mp4", "byxOvuiIJV0.mp4", "eQu1rNs0an0.mp4", "Yi4Ij2NM7U4.mp4", "sTEELN-vY30.mp4", "_xMr-HKMfVA.mp4", "WxtbjNsCQ8A.mp4", "gzDbaEs1Rlg.mp4", "WG0MBPpPC6I.mp4"]
+
 # Ground Truth
 groundtruth_videos = pd.read_csv('./TVSum-groundtruth.csv', sep=';', header=0).set_index('id')
 
@@ -28,11 +30,10 @@ memorability_videos = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0)
 big_df = []
 
 NBR_FEATURES = 11
-WINDOW_SIZE = 100
+WINDOW_SIZE = 75
 
-# Création du big tableau
-for key in iovc_videos.keys():
-
+# Chargement des données des videos
+def readVideoData(key):
     score_gt = np.array(groundtruth_videos.loc[key.replace(".mp4", ""), "importance"].split(",")).astype(float)
     score_iovc = np.array(iovc_videos[key].iloc[0], dtype=float)
     score_mem = np.array(memorability_videos.loc[key, "memorability_scores"].split(",")).astype(float)
@@ -53,12 +54,25 @@ for key in iovc_videos.keys():
     df["gt"] = score_gt
 
     df = df.to_numpy()
-    df_2 = sliding_window_view(df, WINDOW_SIZE, axis=0) #.reshape((-1, WINDOW_SIZE, 12))
-    big_df.append(df_2)
+    df_2 = sliding_window_view(df, WINDOW_SIZE, axis=0)
+    return df_2
 
-big_df = np.array([item for sublist in big_df for item in sublist])
 
-print("Dataset of shape :", big_df.shape)
+# Donnée d'entrainement
+train_df = []
+for key in iovc_videos.keys():
+    if key not in VALIDATION_VIDEO:
+        train_df.append(readVideoData(key))
+train_df = np.array([item for sublist in train_df for item in sublist])
+
+# Donnée de validation
+val_df = []
+for key in VALIDATION_VIDEO:
+    val_df.append(readVideoData(key))
+val_df = np.array([item for sublist in val_df for item in sublist])
+
+print("Dataset training of shape :", train_df.shape)
+print("Dataset validation of shape :", val_df.shape)
 
 ###################################################################################
 
@@ -98,9 +112,8 @@ class MLP_LSTM(nn.Module):
 
 
 # Dataset
-train_df, test_df = train_test_split(big_df, test_size=0.1, random_state=1)
 train_df = MyDataset(train_df)
-test_df = MyDataset(test_df)
+test_df = MyDataset(val_df)
 trainloader = torch.utils.data.DataLoader(train_df, batch_size=256, shuffle=True)
 testloader = torch.utils.data.DataLoader(test_df, batch_size=256, shuffle=True)
 
@@ -112,7 +125,7 @@ mlp_lstm.to(device)
 
 # Define the loss function and optimizer
 loss_function = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(mlp_lstm.parameters(), lr=1e-5)
+optimizer = torch.optim.Adam(mlp_lstm.parameters(), lr=1e-6)
 
 # Run the training loop
 for epoch in range(0, 250):  # 5 epochs at maximum
@@ -190,7 +203,7 @@ for epoch in range(0, 250):  # 5 epochs at maximum
     val_loss = validation_loss / len(testloader)
 
     print(f'Epoch {epoch} \t Training Loss={train_loss} - R²={train_r2} \t Validation Loss={val_loss} - R²={val_r2}\n')
-    torch.save(mlp_lstm, "sequence_nn_512_%d_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_r2))
+    torch.save(mlp_lstm, "sequence_nn_512_%d_epoch=%d_train_loss=%f_train_r2=%.3f_val_loss=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_loss, val_r2))
 
 
 # Process is complete.

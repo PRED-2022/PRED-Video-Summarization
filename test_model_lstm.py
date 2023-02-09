@@ -207,7 +207,7 @@ for epoch in range(0, 250):  # 5 epochs at maximum
     val_loss = validation_loss / len(valloader)
 
     print(f'Epoch {epoch} - Training Loss={train_loss} - R²={train_r2} \t Validation Loss={val_loss} - R²={val_r2}\n')
-    torch.save(mlp_lstm, "sequence_lstm_nn_512_%d_epoch=%d_loss=%f_train_r2=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_r2))
+    torch.save(mlp_lstm, "sequence_lstm_nn_512_%d_epoch=%d_train_loss=%f_train_r2=%.3f_val_loss=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_loss, val_r2))
 
 
 # Process is complete.

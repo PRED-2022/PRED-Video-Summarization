@@ -96,6 +96,7 @@ class MLP_LSTM(nn.Module):
 
         self.layers = torch.nn.Sequential(
             torch.nn.ReLU(),
+            torch.nn.Dropout(0.15),
             torch.nn.Linear(512, 256),
             torch.nn.ReLU(),
             torch.nn.Linear(256, 64),
@@ -130,7 +131,7 @@ loss_function = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(mlp_lstm.parameters(), lr=1e-5)
 
 # Run the training loop
-for epoch in range(0, 250):  # 5 epochs at maximum
+for epoch in range(0, 50):
 
     # Set current loss value
     current_loss = 0.0

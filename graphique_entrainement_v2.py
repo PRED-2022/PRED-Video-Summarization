@@ -4,8 +4,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from glob import glob
 
-MODEL_NAME = "models_sans_dropout/sequence_nn_512_%d_epoch=*.pt"
 MODEL_NAME = "models_sans_dropout/sequence_lstm_nn_512_%d_epoch=*.pt"
+MODEL_NAME = "models_sans_dropout/sequence_nn_512_%d_epoch=*.pt"
 
 nn = glob(MODEL_NAME)
 
@@ -33,6 +33,7 @@ for data, nn_size in models:
     values_dict[nn_size]["val_loss"] = values[:, 3]
     values_dict[nn_size]["val_r2"] = values[:, 4]
 
+    print(nn_size, "max r2 training", np.max(values_dict[nn_size]["train_r2"]))
     print(nn_size, "max r2 validation", np.max(values_dict[nn_size]["val_r2"]))
 
 fig, axs = plt.subplots(1, 2)

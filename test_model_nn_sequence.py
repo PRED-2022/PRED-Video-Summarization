@@ -30,7 +30,7 @@ memorability_videos = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0)
 big_df = []
 
 NBR_FEATURES = 11
-WINDOW_SIZE = 75
+WINDOW_SIZE = 100
 
 # Chargement des données des videos
 def readVideoData(key):
@@ -93,10 +93,10 @@ class MLP_LSTM(nn.Module):
     def __init__(self):
         super(MLP_LSTM, self).__init__()
         self.layers = torch.nn.Sequential(
-            torch.nn.Linear(WINDOW_SIZE * 11, 1024),
+            torch.nn.Linear(WINDOW_SIZE * 11, 512),
             torch.nn.ReLU(),
             # torch.nn.Dropout(0.15),
-            torch.nn.Linear(1024, 256),
+            torch.nn.Linear(512, 256),
             torch.nn.ReLU(),
             torch.nn.Linear(256, 64),
             torch.nn.ReLU(),
@@ -204,7 +204,7 @@ for epoch in range(0, 50):
     val_loss = validation_loss / len(testloader)
 
     print(f'Epoch {epoch} \t Training Loss={train_loss} - R²={train_r2} \t Validation Loss={val_loss} - R²={val_r2}\n')
-    torch.save(mlp_lstm, "sequence_nn_1024_%d_epoch=%d_train_loss=%f_train_r2=%.3f_val_loss=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_loss, val_r2))
+    torch.save(mlp_lstm, "sequence_nn_512_%d_epoch=%d_train_loss=%f_train_r2=%.3f_val_loss=%.3f_val_r2=%.3f.pt" % (WINDOW_SIZE, epoch, train_loss, train_r2, val_loss, val_r2))
 
 
 # Process is complete.

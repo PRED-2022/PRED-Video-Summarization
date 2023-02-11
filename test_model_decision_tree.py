@@ -89,7 +89,7 @@ feature_names = train_df.columns
 
 nb_selected_frames_test = len(test_df[test_df["gt"] == 1])
 nb_not_selected_frames_test = len(test_df[test_df["gt"] == 0])
-NB_TEST_SPLITS = floor(nb_not_selected_frames/nb_selected_frames)
+NB_TEST_SPLITS = floor(nb_not_selected_frames_test/nb_selected_frames_test)
 selected_indices_test = list(test_df[test_df["gt"] == 1].index.values)
 print("Nb de splits de test :", NB_TEST_SPLITS)
 not_selected_indices_test = list(test_df[test_df["gt"] == 0].index.values)
@@ -98,35 +98,36 @@ shuffle(not_selected_indices_test)
 test_gt = test_df["gt"]
 test_df.drop(inplace=True, columns="gt")
 
-test_indices = not_selected_indices_test[:nb_selected_frames_test] + selected_indices_test
-print(len(not_selected_indices_test[:nb_selected_frames_test]), len(selected_indices_test))
-test_df = test_df.loc[test_indices]
-test_gt = test_gt.loc[test_indices]
 auc = []
 fp_tp_rates = []
 confusion_matrices = []
-for train_i in range(NB_TRAIN_SPLITS):
+for test_i in range(NB_TEST_SPLITS):
     # Récupération des éléments du groupe actuel d'entrainement
-    first_indice = train_i*nb_selected_frames
-    last_indice = first_indice + nb_selected_frames
-    train_indices = not_selected_indices[first_indice:last_indice] + selected_indices
+    first_indice = test_i*nb_selected_frames_test
+    last_indice = first_indice + nb_selected_frames_test
+
     # Jeu d'entrainement
+    train_indices = not_selected_indices[:nb_selected_frames] + selected_indices
     X_train, y_train = train_df.loc[train_indices], train_gt.loc[train_indices]
+
+    test_indices = not_selected_indices_test[first_indice:last_indice] + selected_indices_test
+    X_test = test_df.loc[test_indices]
+    y_test = test_gt.loc[test_indices]
 
     # Entrainement de l'arbre
     binary_classif_model = DecisionTreeClassifier(max_depth=10, random_state=0)
     binary_classif_model.fit(X_train, y_train)
     # Prédiction sur les donnees de test
-    y_test_pred = binary_classif_model.predict(test_df)
+    y_test_pred = binary_classif_model.predict(X_test)
 
     # Calcul de la matrice de confusion
-    confusion_matrices.append(metrics.confusion_matrix(test_gt, y_test_pred))
+    confusion_matrices.append(metrics.confusion_matrix(y_test, y_test_pred))
 
     # Prédiction des scores plutôt que binaire
-    y_test_pred_score = binary_classif_model.predict_proba(test_df)[:, 1]
+    y_test_pred_score = binary_classif_model.predict_proba(X_test)[:, 1]
 
     # Courbe ROC
-    fp_rate, tp_rate, thresholds = metrics.roc_curve(test_gt, y_test_pred_score)
+    fp_rate, tp_rate, thresholds = metrics.roc_curve(y_test, y_test_pred_score)
     fp_tp_rates.append((fp_rate, tp_rate))
 
     # AUC

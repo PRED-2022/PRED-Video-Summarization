@@ -4,14 +4,14 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from glob import glob
 
-MODEL_NAME = "models_sans_dropout/sequence_lstm_nn_512_%d_epoch=*.pt"
 MODEL_NAME = "models_sans_dropout/sequence_nn_512_%d_epoch=*.pt"
+MODEL_NAME = "models_sans_dropout/sequence_lstm_nn_512_%d_epoch=*.pt"
 
 nn = glob(MODEL_NAME)
 
 models_size = [5, 10, 20, 50, 75, 100]
 models = [(glob(MODEL_NAME % size), size) for size in models_size]
-print(models)
+
 values_dict = dict()
 
 for data, nn_size in models:
@@ -33,44 +33,48 @@ for data, nn_size in models:
     values_dict[nn_size]["val_loss"] = values[:, 3]
     values_dict[nn_size]["val_r2"] = values[:, 4]
 
-# sns.set_theme(style="whitegrid")
+    print(nn_size, "max r2 validation", np.max(values_dict[nn_size]["val_r2"]))
 
-
-fig, axs = plt.subplots(2, 2)
+fig, axs = plt.subplots(1, 2)
 
 data = []
 for _, nn_size in models:
     data.append(values_dict[nn_size]["train_loss"])
 data = pd.DataFrame(np.array(data).T, columns=list(map(lambda x: "Séquence : " + str(x[1]), models)))
-sns.lineplot(ax=axs[0, 0], data=data, dashes=False, linewidth=1.5)
-axs[0, 0].set(xlabel='Epoch', ylabel='Mean Squared Error sur jeu d\'entraînement')
-
-data = []
-for _, nn_size in models:
-    data.append(values_dict[nn_size]["val_loss"])
-data = pd.DataFrame(np.array(data).T, columns=list(map(lambda x: "Séquence : " + str(x[1]), models)))
-sns.lineplot(ax=axs[0, 1], data=data, dashes=False, linewidth=1.5)
-axs[0, 1].set(xlabel='Epoch', ylabel='Mean Squared Error sur jeu de validation')
-
+sns.lineplot(ax=axs[0], data=data, dashes=False, linewidth=1.5)
+axs[0].set(xlabel='Epoch', ylabel='Mean Squared Error sur jeu d\'entraînement')
 
 data = []
 for _, nn_size in models:
     data.append(values_dict[nn_size]["train_r2"])
 data = pd.DataFrame(np.array(data).T, columns=list(map(lambda x: "Séquence : " + str(x[1]), models)))
-sns.lineplot(ax=axs[1, 0], data=data, dashes=False, linewidth=1.5)
-axs[1, 0].set(xlabel='Epoch', ylabel='R² sur jeu d\'entraînement')
+sns.lineplot(ax=axs[1], data=data, dashes=False, linewidth=1.5)
+axs[1].set(xlabel='Epoch', ylabel='R² sur jeu d\'entraînement')
+
+
+plt.tight_layout()
+plt.show()
+
+fig, axs = plt.subplots(1, 2)
+
+data = []
+for _, nn_size in models:
+    data.append(values_dict[nn_size]["val_loss"])
+data = pd.DataFrame(np.array(data).T, columns=list(map(lambda x: "Séquence : " + str(x[1]), models)))
+sns.lineplot(ax=axs[0], data=data, dashes=False, linewidth=1.5)
+axs[0].set(xlabel='Epoch', ylabel='Mean Squared Error sur jeu de validation')
 
 
 data = []
 for _, nn_size in models:
     data.append(values_dict[nn_size]["val_r2"])
 data = pd.DataFrame(np.array(data).T, columns=list(map(lambda x: "Séquence : " + str(x[1]), models)))
-sns.lineplot(ax=axs[1, 1], data=data, dashes=False, linewidth=1.5)
-axs[1, 1].set(xlabel='Epoch', ylabel='R² sur jeu de validation')
+sns.lineplot(ax=axs[1], data=data, dashes=False, linewidth=1.5)
+axs[1].set(xlabel='Epoch', ylabel='R² sur jeu de validation')
 
-fig.suptitle(MODEL_NAME, fontsize=16)
-
+plt.tight_layout()
 plt.show()
+# fig.suptitle(MODEL_NAME, fontsize=16)
 
 
 

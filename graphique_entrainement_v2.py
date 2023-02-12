@@ -4,12 +4,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from glob import glob
 
-MODEL_NAME = "models_sans_dropout/sequence_lstm_nn_512_%d_epoch=*.pt"
 MODEL_NAME = "models_sans_dropout/sequence_nn_512_%d_epoch=*.pt"
+MODEL_NAME = "models_sans_dropout/sequence_nn_512_%d_epoch=*.pt"
+MODEL_NAME = "sequence_lstm_nn_1024_%d_epoch=*.pt"
 
 nn = glob(MODEL_NAME)
 
-models_size = [5, 10, 20, 50, 75, 100]
+models_size = [75, 100]
 models = [(glob(MODEL_NAME % size), size) for size in models_size]
 
 values_dict = dict()

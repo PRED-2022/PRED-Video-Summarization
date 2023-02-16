@@ -66,7 +66,6 @@ Modèles :
 
 
 Autre :
-
 - `./correlations.py` -->
 - `./graphique_entrainement.py` --> Permet de générer des graphiques de résultats lors de l'entrainement d'un réseau
 - `./heatmap_wasserstein.py` --> Permet de générer un graphique d'une matrice de Wasserstein

@@ -3,7 +3,7 @@ import sys
 import os
 import json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), './paperwithcode/ResidualMaskingNetwork'))
+sys.path.append(os.path.join(os.path.dirname(__file__), './ResidualMaskingNetwork'))
 
 from rmn import RMN
 

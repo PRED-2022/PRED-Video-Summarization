@@ -32,6 +32,9 @@ IOVC : Modèles et poids disponibles dans le dossier `IOVC`
 
 Les données inférées sont disponible dans ce uncloud : https://uncloud.univ-nantes.fr/index.php/s/Kd2GfoNdSoSAsxR
 
+Les données des caractéristiques inférées sont triées par base (un dossier par base).
+Les CSV ont pour colonnes : le nom de la vidéo et les scores de la caractéristique sous forme de liste.
+Les JSON ont pour clé le nom de la vidéo et pour valeur la liste de scores de la caractéristique.
 
 ## Modèles
 Les poids des modèles de réseau de neurones sont disponibles dans le dossier `models`.

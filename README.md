@@ -1,7 +1,7 @@
 # PRED - Résumé vidéo et caractéristiques perceptuelles
 Auteurs : Josik SALLAUD & Nathan ROCHER
 
-# Contexte
+## Contexte
 
 L’émergence des vidéos générées par des utilisateurs (User-Generated Content) ainsi que la quantité de vidéos proposées sur différentes plateformes augmentant exponentiellement ces dernières années rendent néces saire leurs pré-visualisations sous forme de résumé vidéo pour permettre aux utilisateurs de s’y retrouver parmi une large collection de vidéos.
 
@@ -11,7 +11,7 @@ Nous proposons dans ce travail, une méthode de génération automatique de rés
 
 Ce travail est réalisé dans le cadre de notre dernière année d’étude d’école d’ingénieurs au sein de Polytech Nantes.
 
-# Installation
+## Installation
 
 Version de python : `3.9.13`
 
@@ -28,15 +28,15 @@ Mémorabilité : [ResMem](https://github.com/Brain-Bridge-Lab/resmem)
 IOVC : Modèles et poids disponibles dans le dossier `IOVC`
 
 
-# Dossier des données inférées
+## Dossier des données inférées
 
 Les données inférées sont disponible dans ce uncloud : https://uncloud.univ-nantes.fr/index.php/s/Kd2GfoNdSoSAsxR
 
 
-# Modèles
+## Modèles
 Les poids des modèles de réseau de neurones sont disponibles dans le dossier `models`.
 
-# Liste des fichiers
+## Liste des fichiers
 
 Émotions : 
 - `./Emotion/face_intensity_video.py` --> Permet d'inférer la reconnaissance d'émotions sur une vidéo

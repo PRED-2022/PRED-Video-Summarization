@@ -118,6 +118,10 @@ mlp_lstm = torch.load("./models_sans_dropout/sequence_nn_512_75_epoch=20_train_l
 video_targets = []
 video_output = []
 
+
+
+
+
 for data in test_df:
 
     # Get and prepare inputs

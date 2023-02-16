@@ -17,6 +17,8 @@ Version de python : `3.9.13`
 
 Installer les dépendances via `pip install -r requirements.txt`
 
+A cloner dans la racine de ce projet :
+
 Résumé vidéo : [PGL-SUM](https://github.com/e-apostolidis/PGL-SUM)
 
 Reconnaissance d'émotion : [ResidualMaskingNetwork](https://github.com/phamquiluan/ResidualMaskingNetwork)

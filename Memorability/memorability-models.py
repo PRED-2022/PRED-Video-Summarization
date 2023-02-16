@@ -1,3 +1,6 @@
+"""
+Test de plusieurs modèles d'inférence de mémorabilité
+"""
 import cv2
 import torch
 from PIL import Image

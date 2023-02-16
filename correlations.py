@@ -1,3 +1,11 @@
+"""
+Test de corrélations linéaires
+Pearson & Spearman 
+sur l'IOVC et la mémorabilité
++
+Test de Student sur toutes les caractéristiques
+"""
+
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -15,6 +23,10 @@ elif DATABASE == "TVSum":
     VIDEO_EXTENSION = ".mp4"
 
 def save_hist(data, feature):
+    """
+    Sauvegarde dans le dossier à créer : ./Figures/Plots/{DATABASE}/T-Test/
+    un histogramme des p-valeurs du test de student de la caractéristique
+    """
     plt.hist(data, bins=np.arange(0, np.max(data)+0.01, 0.01))
     plt.xlabel("P-Valeur")
     plt.ylabel("Nombre de vidéos")
@@ -23,6 +35,10 @@ def save_hist(data, feature):
     plt.clf()
 
 def save_hist_correlation(data, feature, correlation):
+    """
+    Sauvegarde dans le dossier à créer : ./Figures/Plots/{DATABASE}/Correlation/
+    un histogramme de corrélation de la caractéristique avec la vérité-terrain
+    """
     bins = np.arange(-1, 1, .1)
     plt.hist(data, bins=bins)
     plt.title(DATABASE + " - " + feature)

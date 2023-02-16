@@ -1,9 +1,23 @@
+"""
+    Script pour lire les données inférées
+    et la vérité-terrain de VSumm
+"""
 import numpy as np
 import pandas as pd
 import glob
 import cv2
 
+bases = ["youtube", "open-video"]
+
 def get_frames_importance(VIDEO_ID, base="youtube"):
+    """
+    Retourne la vérité terrain de la vidéo d'une certaine base.
+    
+    Parameters
+    ----------
+    VIDEO_ID : identifiant de la vidéo
+    base : bases "youtube" ou "open-video"
+    """
     video_path = glob.glob("./vsumm/{}/{}.*".format(base, VIDEO_ID))[0]
     video = cv2.VideoCapture(video_path)
     nb_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -23,7 +37,10 @@ def get_frames_importance(VIDEO_ID, base="youtube"):
     return np.array(binarized_vect)
 
 def read_iovc():
-    for base in ["open-video"]:
+    """
+    Lit l'iovc des bases de VSUMM
+    """
+    for base in bases:
         iovc_videos = pd.read_json('./vsumm-{}-iovc.json'.format(base), lines=True)
         avg_avg_selected = []
         avg_avg_not_selected = []
@@ -51,7 +68,10 @@ def read_iovc():
 
 
 def read_memorability():
-    for base in ["youtube", "open-video"]:
+    """
+    Lit la mémorabilité des bases de VSUMM
+    """
+    for base in bases:
         mems = pd.read_csv('./Memorability/vsumm-{}-mem-score.csv'.format(base), sep=';', header=0)
         avg_avg_selected = []
         avg_avg_not_selected = []

@@ -1,3 +1,7 @@
+"""
+    Script pour lire les données inférées
+    et la vérité-terrain de TVSum
+"""
 import math
 from os import path
 import matplotlib.pyplot as plt
@@ -23,9 +27,23 @@ from scipy.stats import wasserstein_distance
 #                            Importance entre 1 (basse) et 5 (forte)
 
 def get_video_framerate(video_id):
+    """
+    Retourne la fréquence d'images de la vidéo.
+    
+    Parameters
+    ----------
+    video_id : identifiant de la vidéo
+    """
     return cv2.VideoCapture("./tvsum/video/{}.mp4".format(video_id)).get(cv2.CAP_PROP_FPS)
 
 def get_frames_importance(VIDEO_ID):
+    """
+    Retourne la vérité terrain de la vidéo.
+    
+    Parameters
+    ----------
+    VIDEO_ID : identifiant de la vidéo
+    """
     ground_truth = pd.read_csv('./tvsum/data/ydata-tvsum50-anno.tsv', sep='\t', header=None)
     ground_truth.columns = ['id', 'category', 'importance']
 
@@ -40,6 +58,13 @@ def get_frames_importance(VIDEO_ID):
     return np.mean(annotations_list, axis=0)
 
 def get_frames_summary(VIDEO_KEY):
+    """
+    Retourne le résumé vidéo de la vidéo.
+    
+    Parameters
+    ----------
+    VIDEO_KEY : clé de la vidéo
+    """
     summaries = pd.read_csv('./TVSum-PGLSUM-summary.csv', sep=';', header=0)
     summary_row = summaries[summaries['video_key'] == 'video_' + str(VIDEO_KEY)]
     if summary_row.empty:
@@ -50,10 +75,24 @@ def get_frames_summary(VIDEO_KEY):
 
 
 def get_frames_iovc(VIDEO_ID):
+    """
+    IOVC de la vidéo.
+    
+    Parameters
+    ----------
+    VIDEO_ID : id de la vidéo
+    """
     iovc_videos = pd.read_json("./TVSum-iovc.json", lines=True)
     return iovc_videos[VIDEO_ID + '.mp4'].iloc[0]
 
 def get_frames_memorability(VIDEO_ID):
+    """
+    Mémorabilité de la vidéo.
+    
+    Parameters
+    ----------
+    VIDEO_ID : id de la vidéo
+    """
     mems = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0)
     mems_of_video = mems[mems['video_name'] == VIDEO_ID + '.mp4']
 
@@ -65,11 +104,18 @@ def get_frames_memorability(VIDEO_ID):
 
 
 def get_all_videos_id():
+    """
+    Retourne les identifiants des vidéos de la base
+    """
     videos_infos = pd.read_csv('./tvsum/data/ydata-tvsum50-info.tsv', sep='\t', header=0)
     print(len(videos_infos['video_id']))
     return videos_infos['video_id']
 
 def get_all_frames_importance():
+    """
+    Ecrit dans un fichier CSV les vérités terrains
+    de chaque vidéo de la base
+    """
     ground_truth = pd.read_csv('./tvsum/data/ydata-tvsum50-anno.tsv', sep='\t', header=None)
     ground_truth.columns = ['id', 'category', 'importance']
     with open('./TVSum-groundtruth.csv', 'w', newline='') as csv_file:
@@ -89,6 +135,9 @@ def get_all_frames_importance():
 
 
 def read_correlations():
+    """
+    Teste les corrélations linéaires de mémorabilité et d'IOVC
+    """
     df = pd.read_csv('./TVSum-memorability.csv', sep=';', header=0, usecols=['video_name', 'memorability_scores'])
 
     for index in range(len(df)):
@@ -141,6 +190,10 @@ def read_correlations():
 
 
 def save_boxplot(video_id, data, feature_name, bottom=-1, top=-1):
+    """
+    Sauvegarde les boîtes à moustaches
+    dans un dossier (à créer) : ./Figures/Boxplots/TVSum/{feature_name}/{video_id}
+    """
     if top != -1 and bottom != -1:
         plt.ylim(top=top, bottom=bottom)
     elif top != -1:
@@ -152,6 +205,10 @@ def save_boxplot(video_id, data, feature_name, bottom=-1, top=-1):
     plt.clf()
 
 def save_plot(video_id, data, feature_name):
+    """
+    Sauvegarde le graphique d'évolution de la caractéristique
+    dans un dossier (à créer) : ./Figures/Plots/TVSum/{feature_name}
+    """
     framerate = get_video_framerate(video_id)
     nb_seconds = len(data) / framerate
     plt.xlabel("Video in seconds")
@@ -161,6 +218,14 @@ def save_plot(video_id, data, feature_name):
     plt.savefig('./Figures/Plots/TVSum/{}/{}.jpg'.format(feature_name, video_id))
     plt.clf()
 
+
+"""
+Paramètre à activer/désactiver pour tester :
+    le clustering T-SNE : DIM_REDUCTIONS_TEST
+    test de variance : ANOVA_TEST
+    la similarité : WASSERSTEIN_TEST
+    si l'on souhaite sauvegarder les figures : SAVE_FIG
+"""
 
 WASSERSTEIN_TEST = "IOVC" # ou "Memorability" ou False pour ne pas le faire
 ANOVA_TEST = False

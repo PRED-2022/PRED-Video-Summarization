@@ -1,3 +1,7 @@
+"""
+Prédire la mémorabilité d'une base de vidéos
+et l'écrire dans un fichier CSV
+"""
 import cv2
 import torch
 from resmem import ResMem, transformer
@@ -6,12 +10,16 @@ import glob
 import csv
 from rich.progress import Progress
 
-VIDEO_FOLDER = './SumMe/videos/'
 
+# Dossier de la base
+VIDEO_FOLDER = './SumMe/videos/'
+# Extension des vidéos de la base à inférer
+VIDEO_EXTENSION = ".webm"
+# Ecriture de la mémorabilité dans le CSV
 MEM_SCORE_FILEPATH = './summe-mem-score.csv'
 
 if __name__ == "__main__":
-    video_names = glob.glob1(VIDEO_FOLDER, '*.webm')
+    video_names = glob.glob1(VIDEO_FOLDER, '*' + VIDEO_EXTENSION)
     
     model = ResMem(pretrained=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

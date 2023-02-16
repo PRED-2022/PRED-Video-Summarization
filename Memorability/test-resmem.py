@@ -1,3 +1,7 @@
+"""
+Test de l'inférence de la mémorabilité avec ResMem
+sur une vidéo
+"""
 import cv2
 import torch
 from resmem import ResMem, transformer

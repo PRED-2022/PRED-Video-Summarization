@@ -13,7 +13,7 @@ from numpy.lib.stride_tricks import sliding_window_view
 from rich.progress import Progress
 import matplotlib.pyplot as plt
 
-TEST_VIDEO = "3eYKfiOEJNs.mp4"
+TEST_VIDEO = "WxtbjNsCQ8A.mp4"
 
 # Ground Truth
 groundtruth_videos = pd.read_csv('./TVSum-groundtruth.csv', sep=';', header=0).set_index('id')
@@ -32,7 +32,7 @@ big_df = []
 NBR_FEATURES = 11
 WINDOW_SIZE = 75
 
-SCORE_GT = []
+VIDEO_DT = []
 
 # Chargement des données des videos
 def readVideoData(key):
@@ -55,8 +55,8 @@ def readVideoData(key):
     df["memorability"] = score_mem
     df["gt"] = score_gt
 
-    global SCORE_GT
-    SCORE_GT = np.array(score_gt)
+    global VIDEO_DT
+    VIDEO_DT = df
 
     df = df.to_numpy()
     df_2 = sliding_window_view(df, WINDOW_SIZE, axis=0)
@@ -65,6 +65,11 @@ def readVideoData(key):
 
 # Donnée de test
 test_df = readVideoData(TEST_VIDEO)
+
+
+
+
+
 
 ###################################################################################
 
@@ -133,4 +138,28 @@ plt.plot(video_output, label="output")
 plt.plot(video_targets, label="video_targets")
 
 plt.legend()
+plt.show()
+
+
+output_data = np.zeros((len(VIDEO_DT[VIDEO_DT.columns[0]])))
+index = len(output_data) - len(video_output)
+output_data[index:] = video_output
+
+fig, axs = plt.subplots(13)
+for i, keys in enumerate(VIDEO_DT.columns, 0):
+    color = ""
+    if i <= 8:
+        color = "tab:orange"
+    elif i <= 9:
+        color = "tab:red"
+    elif i <= 10:
+        color = "tab:green"
+    else: 
+        color = ""
+
+    axs[i].set_title(keys)
+    axs[i].plot(VIDEO_DT[keys], color)
+
+axs[12].set_title("prediction")
+axs[12].plot(output_data)
 plt.show()

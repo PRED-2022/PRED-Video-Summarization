@@ -23,7 +23,7 @@ Reconnaissance d'émotion : [ResidualMaskingNetwork](https://github.com/phamquil
 
 Mémorabilité : [ResMem](https://github.com/Brain-Bridge-Lab/resmem)
 
-IOVC : Modèle et poids disponible dans le dossier ``IOVC``
+IOVC : Modèle et poids disponible dans le dossier `IOVC`
 
 
 
@@ -40,6 +40,36 @@ Les données inférées sont dans ce uncloud : https://uncloud.univ-nantes.fr/in
 Les poids des modèles de réseau de neurone sont disponible dans le dossier `models`.
 
 # Liste des fichiers
-Faire une decseiption des fichiers
 
-Faire doc avec signature et lien vers le git / uncloud
+Émotions : 
+- `./Emotion/face_intensity_video.py` --> Permet d'inférer la reconnaissance d'émotion sur une vidéo
+
+Memorabilité :
+- `./Memorability/memorability-models.py` --> 
+- `./Memorability/predict_memorability.py` --> 
+- `./Memorability/test-resmem.py` --> 
+
+IOVC:
+- `./IOVC/infer_summe.py` --> Permet d'inférer le score d'IOVC par image pour le jeu de données SUMME
+- `./IOVC/infer_tvsum.py` --> Permet d'inférer le score d'IOVC par image pour le jeu de données TVSum
+- `./IOVC/infer_VSUMM_OpenVideo.py` --> Permet d'inférer le score d'IOVC par image pour le jeu de données VSUMM mais que les vidéos OpenVideo
+- `./IOVC/infer_VSUMM_Youtube.py` --> Permet d'inférer le score d'IOVC par image pour le jeu de données VSUMM mais que les vidéos Youtube
+
+Modèles : 
+- `./test_model_lstm.py` --> Permet d'inférer une vidéo avec un de nos modèles
+- `./test_model_nn_sequence.py` --> Permet d'inférer une vidéo avec un de nos modèles
+- `./train_model_decision_tree.py` --> Permet d'entrainer un modèle d'arbre de décision
+- `./train_model_lstm.py` --> Permet d'entrainer un modèle de réseau de neurone avec couche LSTM avec des séquences de caractéristiques
+- `./train_model_nn_features.py` --> Permet d'entrainer un modèle de réseau de neurone avec seulement les caractéristiques d'une image
+- `./train_model_nn_sequence.py` --> Permet d'entrainer un modèle de réseau de neurone avec des séquences de caractéristiques
+- `./train_model_svr.py` --> Permet d'entrainer un modèle de SVR avec seulement les caractéristiques d'une image
+
+
+Autre :
+
+- `./correlations.py` -->
+- `./graphique_entrainement.py` --> Permet de générer des graphiques de résultats lors de l'entrainement d'un réseau
+- `./heatmap_wasserstein.py` --> Permet de générer un graphique d'une matrice de Wasserstein
+- `./read_summe.py` -->
+- `./read_tvsum.py` -->
+- `./read_vsumm.py` -->

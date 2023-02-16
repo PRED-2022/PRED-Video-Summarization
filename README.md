@@ -30,7 +30,7 @@ IOVC : Modèles et poids disponibles dans le dossier `IOVC`
 
 # Dossier des données inférées
 
-Les données inférées sont dans ce uncloud : https://uncloud.univ-nantes.fr/index.php/s/Kd2GfoNdSoSAsxR
+Les données inférées sont disponible dans ce uncloud : https://uncloud.univ-nantes.fr/index.php/s/Kd2GfoNdSoSAsxR
 
 
 # Modèles

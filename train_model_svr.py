@@ -1,3 +1,7 @@
+"""
+Permet d'entrainer un SVR sur un vecteur de caractéristique d'une image seule
+"""
+
 import json
 from glob import glob
 import numpy as np

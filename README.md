@@ -13,9 +13,9 @@ Ce travail est réalisé dans le cadre de notre dernière année d’étude d’
 
 # Installation
 
-Installer les dépendances via `pip install -r requirements.txt`
-
 Version de python : `3.9.13`
+
+Installer les dépendances via `pip install -r requirements.txt`
 
 Résumé vidéo : [PGL-SUM](https://github.com/e-apostolidis/PGL-SUM)
 

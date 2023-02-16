@@ -1,3 +1,7 @@
+"""
+Permet d'entrainer un arbre de décision
+"""
+
 from math import ceil, floor
 import numpy as np
 import pandas as pd

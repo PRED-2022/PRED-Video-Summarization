@@ -1,15 +1,24 @@
+"""
+Permet d'extraire des scores de chaque image de la vidéo, les vecteurs qui nous intéresse
+"""
+
 import json
 from glob import glob
 
 face_files = glob("*-face-intensity.json")
 
+# On boucle sur les différents fichier
 for file_name in face_files:
+
+    # On lit le fichier
     with open(file_name) as json_file:
         face_data = json.load(json_file)
 
+        # Pour chaque vidéo
         for video_key in face_data.keys():
             video_data = face_data[video_key]
 
+            # On analyse chaque frame
             new_video_features = []
             for frame_data in video_data:
                 if frame_data is not None :
@@ -30,6 +39,7 @@ for file_name in face_files:
                             if max_proba < value:
                                 max_proba = value
                     
+                    # On récupère les valeurs finales
                     final_features_dict = {"nbr_face": nbr_face, "max_proba": max_proba, **max_emotion_dict}
 
                     new_video_features.append(final_features_dict)
@@ -38,5 +48,6 @@ for file_name in face_files:
 
             face_data[video_key] = new_video_features
 
+        # On écrit les valeurs qui nous intéresse
         with open("PROCESSED-" + file_name, "w") as processed_file:
             processed_file.write(json.dumps(face_data))

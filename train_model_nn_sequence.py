@@ -1,3 +1,8 @@
+"""
+Permet d'entrainer le réseau de neurone sur des séquences de caractéristique 
+"""
+
+
 import json
 from glob import glob
 import numpy as np

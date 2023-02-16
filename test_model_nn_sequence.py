@@ -1,3 +1,7 @@
+"""
+Permet de tester un modèle de réseau de neurone en inférence sur une vidéo
+"""
+
 import json
 from glob import glob
 import numpy as np
@@ -138,6 +142,10 @@ for data in test_df:
 video_output = np.array(video_output)
 video_targets = np.array(video_targets)
 
+
+
+
+# Affiche un graphique des résultats obtenus / résultats voulus
 plt.plot(video_output, label="output")
 plt.plot(video_targets, label="video_targets")
 
@@ -145,6 +153,8 @@ plt.legend()
 plt.show()
 
 
+
+# Affiche un graphique de toutes les caractéristiques + prédictions du modèle
 output_data = np.zeros((len(VIDEO_DT[VIDEO_DT.columns[0]])))
 index = len(output_data) - len(video_output)
 output_data[index:] = video_output

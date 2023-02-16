@@ -1,10 +1,15 @@
+"""
+Permet d'inférer l'intensité émotionnelle sur une vidéos
+"""
+
 import cv2
 import sys
 import os
 import json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), './ResidualMaskingNetwork'))
 
+# Pour charger la librairie de ResidualMaskingNetwork
+sys.path.append(os.path.join(os.path.dirname(__file__), './ResidualMaskingNetwork'))
 from rmn import RMN
 
 import torch
@@ -22,11 +27,13 @@ DISPLAY_VIDEO = False
 
 if __name__ == "__main__":
     m = RMN()
-  
+    
+    # Récupération de toutes les vidéos disponibles
     video_names = glob.glob1(VIDEO_FOLDER, '*.webm')
 
     video_data = dict() 
     
+    # Ouverture du fichier d'écriture
     with open(FACE_INTENSITY_FILEPATH, 'w', newline='') as output_file:
 
         with Progress() as progress:
@@ -34,6 +41,7 @@ if __name__ == "__main__":
             for video_name in video_names:
                 progress.advance(video_task)
 
+                # Lecture de la vidéo
                 cap = cv2.VideoCapture(VIDEO_FOLDER + video_name)
 
                 video_data[video_name] = list()
@@ -48,7 +56,8 @@ if __name__ == "__main__":
                     if not ret:
                         video_data[video_name].append(None)
                         break
-                
+                    
+                    # Inférence de l'image actuelle
                     results = m.detect_emotion_for_single_frame(frame)
 
                     video_data[video_name].append(results)
@@ -60,6 +69,7 @@ if __name__ == "__main__":
                         # Press Q on keyboard to  exit
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
-            
+        
+        # Sauvegarde des résultats --> Les données doivent être process avant d'être utilisé (voir fichier process_emotion.py)
         output_file.write(json.dumps(video_data))
         print("Fichier sauvegardé") 

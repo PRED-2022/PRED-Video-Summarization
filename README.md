@@ -40,6 +40,7 @@ Les poids des modèles de réseau de neurones sont disponibles dans le dossier `
 
 Émotions : 
 - `./Emotion/face_intensity_video.py` --> Permet d'inférer la reconnaissance d'émotions sur une vidéo
+- `./Emotion/process_emotion.py` --> Permet d'extraire les vecteurs qui nous intérèssent des résultats inférés
 
 Memorabilité :
 - `./Memorability/memorability-models.py` --> Permet de tester plusieurs modèles d'inférence de la mémorabilité
